@@ -25,7 +25,7 @@ export function StatTile({
   const styles = toneStyles[tone];
   return (
     <div
-      className="rounded-xl border p-4 flex flex-col gap-2 min-w-0"
+      className="rounded-[var(--radius)] border p-4 flex flex-col gap-2 min-w-0 transition-shadow hover:shadow-[var(--shadow-hover)]"
       style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
     >
       <div className="flex items-center justify-between">
@@ -61,11 +61,11 @@ export function ModuleStatCard({
 }) {
   const content = (
     <div
-      className="rounded-xl border p-4 flex items-center gap-3.5 min-w-0 h-full transition-opacity hover:opacity-90"
+      className="rounded-[var(--radius)] border p-4 flex items-center gap-3.5 min-w-0 h-full transition-shadow hover:shadow-[var(--shadow-hover)]"
       style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
     >
       <span
-        className="shrink-0 grid place-items-center w-11 h-11 rounded-xl text-white"
+        className="shrink-0 grid place-items-center w-11 h-11 rounded-[var(--radius)] text-white"
         style={{ background: 'var(--brand)' }}
       >
         {icon}

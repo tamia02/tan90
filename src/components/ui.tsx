@@ -11,7 +11,7 @@ export function Card({
 }) {
   return (
     <div
-      className={`rounded-xl border ${className}`}
+      className={`rounded-[var(--radius)] border transition-shadow hover:shadow-[var(--shadow-hover)] ${className}`}
       style={{ borderColor: 'var(--border)', background: 'var(--surface-3)', ...style }}
     >
       {children}
@@ -54,7 +54,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 const controlClass =
-  'w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--brand)]';
+  'w-full rounded-[var(--radius)] border px-3 py-2 text-sm outline-none transition-colors focus:border-[var(--brand)]';
 const controlStyle = { borderColor: 'var(--border)', background: 'var(--surface-1)', color: 'var(--text-primary)' };
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
@@ -85,21 +85,22 @@ export function Button({
   ...rest
 }: { children: ReactNode; variant?: 'primary' | 'secondary' | 'ghost' | 'danger' } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const variants: Record<string, string> = {
-    primary: 'text-white',
-    secondary: '',
-    ghost: '',
-    danger: 'text-white',
+    primary: 'text-white hover:bg-[var(--brand-hover)]',
+    secondary: 'hover:bg-[var(--surface-2)]',
+    ghost: 'hover:bg-[var(--surface-2)]',
+    danger: 'hover:bg-[var(--status-critical-bg)]',
   };
   const styleMap: Record<string, React.CSSProperties> = {
     primary: { background: 'var(--brand)' },
-    secondary: { background: 'var(--surface-2)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
+    secondary: { background: 'var(--surface-1)', color: 'var(--text-primary)', border: '1px solid var(--border)' },
     ghost: { background: 'transparent', color: 'var(--text-secondary)' },
-    danger: { background: 'var(--status-critical)' },
+    // Destructive actions stay text/outline only — never a filled red button.
+    danger: { background: 'transparent', color: 'var(--status-critical)', border: '1px solid var(--status-critical)' },
   };
   return (
     <button
       {...rest}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-opacity disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-[var(--radius)] px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${variants[variant]} ${className}`}
       style={styleMap[variant]}
     >
       {children}

@@ -133,12 +133,12 @@ export default function GuardPortal() {
           </div>
 
           {saved.issues.length > 0 ? (
-            <p className="text-sm mt-4 rounded-lg p-3" style={{ background: 'var(--status-critical-bg)', color: 'var(--status-critical)' }}>
+            <p className="text-sm mt-4 rounded-[var(--radius)] p-3" style={{ background: 'var(--status-critical-bg)', color: 'var(--status-critical)' }}>
               {saved.issues.length} validation issue{saved.issues.length > 1 ? 's' : ''} raised — sent to Validation Engine
               before unloading can start.
             </p>
           ) : (
-            <p className="text-sm mt-4 rounded-lg p-3" style={{ background: 'var(--status-good-bg)', color: 'var(--status-good)' }}>
+            <p className="text-sm mt-4 rounded-[var(--radius)] p-3" style={{ background: 'var(--status-good-bg)', color: 'var(--status-good)' }}>
               No issues found. Cleared straight to unloading.
             </p>
           )}
@@ -165,7 +165,7 @@ export default function GuardPortal() {
           <button
             key={t.value}
             onClick={() => setEntryType(t.value)}
-            className="px-3.5 py-2 rounded-lg text-sm font-medium whitespace-nowrap border"
+            className="px-3.5 py-2 rounded-[var(--radius)] text-sm font-medium whitespace-nowrap border"
             style={{
               borderColor: entryType === t.value ? 'var(--brand)' : 'var(--border)',
               background: entryType === t.value ? 'var(--brand-bg)' : 'var(--surface-3)',
@@ -182,7 +182,7 @@ export default function GuardPortal() {
           <button
             type="button"
             onClick={() => setBillScanned(true)}
-            className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed py-6 text-sm font-medium"
+            className="flex items-center justify-center gap-2 rounded-[var(--radius)] border-2 border-dashed py-6 text-sm font-medium"
             style={{
               borderColor: billScanned ? 'var(--status-good)' : 'var(--border-strong)',
               color: billScanned ? 'var(--status-good)' : 'var(--text-muted)',

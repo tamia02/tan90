@@ -26,6 +26,14 @@ export interface Session {
   loggedInAt: string;
 }
 
+export interface ZohoConnection {
+  connected: boolean;
+  orgName?: string;
+  connectedAt?: string;
+  lastSyncedAt?: string;
+  syncCount: number;
+}
+
 interface State {
   gateEntries: GateEntry[];
   issues: ValidationIssue[];
@@ -35,6 +43,7 @@ interface State {
   ledger: LedgerEntry[];
   finance: FinanceRecord[];
   auth: Partial<Record<Role, Session>>;
+  zoho: ZohoConnection;
 }
 
 const initialState: State = {
@@ -46,6 +55,7 @@ const initialState: State = {
   ledger: seedLedgerEntries,
   finance: seedFinanceRecords,
   auth: {},
+  zoho: { connected: false, syncCount: 0 },
 };
 
 type Action =
@@ -68,7 +78,10 @@ type Action =
     }
   | { type: 'SET_VENDOR_STATUS'; payload: { gateEntryId: string; vendorStatus: FinanceRecord['vendorStatus']; notes?: string } }
   | { type: 'LOGIN'; payload: { role: Role; name: string } }
-  | { type: 'LOGOUT'; payload: { role: Role } };
+  | { type: 'LOGOUT'; payload: { role: Role } }
+  | { type: 'ZOHO_CONNECT'; payload: { orgName: string } }
+  | { type: 'ZOHO_DISCONNECT' }
+  | { type: 'ZOHO_SYNCED' };
 
 function nextId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -194,6 +207,17 @@ function reducer(state: State, action: Action): State {
       return { ...state, auth };
     }
 
+    case 'ZOHO_CONNECT': {
+      const now = new Date().toISOString();
+      return { ...state, zoho: { connected: true, orgName: action.payload.orgName, connectedAt: now, lastSyncedAt: now, syncCount: 0 } };
+    }
+
+    case 'ZOHO_DISCONNECT':
+      return { ...state, zoho: { connected: false, syncCount: 0 } };
+
+    case 'ZOHO_SYNCED':
+      return { ...state, zoho: { ...state.zoho, lastSyncedAt: new Date().toISOString(), syncCount: state.zoho.syncCount + 1 } };
+
     default:
       return state;
   }
@@ -206,7 +230,12 @@ function loadInitial(): State {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<State>;
-      return { ...initialState, ...parsed, auth: { ...initialState.auth, ...parsed.auth } };
+      return {
+        ...initialState,
+        ...parsed,
+        auth: { ...initialState.auth, ...parsed.auth },
+        zoho: { ...initialState.zoho, ...parsed.zoho },
+      };
     }
   } catch {
     // ignore corrupt storage, fall back to seed

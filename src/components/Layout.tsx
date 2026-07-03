@@ -59,7 +59,7 @@ function ProfileMenu() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 mt-2 w-64 rounded-xl border shadow-lg z-50 p-2"
+            className="absolute right-0 mt-2 w-64 rounded-[var(--radius)] border shadow-[var(--shadow-modal)] z-50 p-2"
             style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
           >
             {sessions.length === 0 && (
@@ -191,7 +191,7 @@ export default function Layout() {
           <button className="md:hidden" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
             <Menu size={22} />
           </button>
-          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md rounded-lg border px-3 py-1.5" style={{ borderColor: 'var(--border)' }}>
+          <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md rounded-[var(--radius)] border px-3 py-1.5" style={{ borderColor: 'var(--border)' }}>
             <Search size={16} color="var(--text-muted)" />
             <input
               placeholder="Search GRN, bill, SKU, vendor"

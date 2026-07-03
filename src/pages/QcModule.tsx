@@ -129,7 +129,7 @@ function QcForm({ gateId, label, invoiceQty, material }: { gateId: string; label
         </Field>
       </div>
 
-      <div className="flex items-center justify-between gap-3 mt-3 text-sm rounded-lg px-3 py-2" style={{ background: 'var(--surface-2)' }}>
+      <div className="flex items-center justify-between gap-3 mt-3 text-sm rounded-[var(--radius)] px-3 py-2" style={{ background: 'var(--surface-2)' }}>
         <span style={{ color: 'var(--text-secondary)' }}>Physical received: {physicalReceived}</span>
         <span style={{ color: missing > 0 ? 'var(--status-critical)' : 'var(--status-good)' }}>
           Missing exception: {missing}

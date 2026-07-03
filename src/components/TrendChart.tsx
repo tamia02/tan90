@@ -5,7 +5,7 @@ function CustomTooltip({ active, payload, label, valueFormatter }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div
-      className="rounded-lg border px-3 py-2 text-xs shadow-lg"
+      className="rounded-[var(--radius)] border px-3 py-2 text-xs shadow-[var(--shadow-modal)]"
       style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
     >
       <div className="font-medium" style={{ color: 'var(--text-primary)' }}>

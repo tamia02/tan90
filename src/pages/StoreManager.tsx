@@ -42,7 +42,7 @@ export default function StoreManager() {
           <button
             key={value}
             onClick={() => setTab(value)}
-            className="px-3.5 py-2 rounded-lg text-sm font-medium border"
+            className="px-3.5 py-2 rounded-[var(--radius)] text-sm font-medium border"
             style={{
               borderColor: tab === value ? 'var(--brand)' : 'var(--border)',
               background: tab === value ? 'var(--brand-bg)' : 'var(--surface-3)',

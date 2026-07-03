@@ -1,21 +1,24 @@
 import { useState } from 'react';
-import { Check, CheckCircle2, FileText, Truck, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, FileText, Loader2, Sparkles, Truck, UploadCloud } from 'lucide-react';
 import { useStore } from '../lib/store';
 import { Button, Card, Field, Input, PageHeader } from '../components/ui';
 import type { VendorSubmission } from '../lib/types';
+import { fetchZohoInvoiceForPO } from '../lib/zoho';
 
 const steps = ['PO Number', 'Invoice', 'E-way Bill', 'LR / POD'];
 
 export default function VendorPortal() {
-  const { vendorSubmissions, dispatch } = useStore();
+  const { vendorSubmissions, zoho, dispatch } = useStore();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [zohoState, setZohoState] = useState<'idle' | 'loading' | 'synced' | 'not_found'>('idle');
   const [form, setForm] = useState({
     poNumber: '',
     vendorName: '',
     invoiceNumber: '',
     invoiceQty: '',
     material: '',
+    ewayBillNumber: '',
     hasInvoice: false,
     hasEwayBill: false,
     hasLrPod: false,
@@ -23,6 +26,26 @@ export default function VendorPortal() {
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function fetchFromZoho() {
+    setZohoState('loading');
+    const record = await fetchZohoInvoiceForPO(form.poNumber);
+    if (!record) {
+      setZohoState('not_found');
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      invoiceNumber: record.invoiceNumber,
+      invoiceQty: String(record.invoiceQty),
+      material: f.material || record.material,
+      ewayBillNumber: record.ewayBillNumber,
+      hasInvoice: true,
+      hasEwayBill: true,
+    }));
+    dispatch({ type: 'ZOHO_SYNCED' });
+    setZohoState('synced');
   }
 
   const poMissing = step === 0 && form.poNumber.trim() === '';
@@ -61,7 +84,8 @@ export default function VendorPortal() {
             onClick={() => {
               setSubmitted(false);
               setStep(0);
-              setForm({ poNumber: '', vendorName: '', invoiceNumber: '', invoiceQty: '', material: '', hasInvoice: false, hasEwayBill: false, hasLrPod: false });
+              setZohoState('idle');
+              setForm({ poNumber: '', vendorName: '', invoiceNumber: '', invoiceQty: '', material: '', ewayBillNumber: '', hasInvoice: false, hasEwayBill: false, hasLrPod: false });
             }}
           >
             Submit another
@@ -117,6 +141,33 @@ export default function VendorPortal() {
 
         {step === 1 && (
           <div className="flex flex-col gap-4">
+            {zoho.connected ? (
+              <button
+                type="button"
+                onClick={fetchFromZoho}
+                disabled={zohoState === 'loading' || !form.poNumber}
+                className="flex items-center justify-center gap-2 rounded-[var(--radius)] py-3 text-sm font-medium w-full disabled:opacity-50"
+                style={{ background: 'var(--brand-bg)', color: 'var(--brand)' }}
+              >
+                {zohoState === 'loading' ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                {zohoState === 'loading' ? 'Fetching from Zoho…' : 'Fetch from Zoho'}
+              </button>
+            ) : (
+              <p className="text-xs rounded-[var(--radius)] px-3 py-2" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                Zoho isn't connected yet (Admin → Zoho Integration) — enter invoice details manually below.
+              </p>
+            )}
+            {zohoState === 'not_found' && (
+              <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--status-warning)' }}>
+                <AlertTriangle size={13} /> No invoice found in Zoho for this PO — enter details manually.
+              </p>
+            )}
+            {zohoState === 'synced' && (
+              <p className="text-xs flex items-center gap-1.5" style={{ color: 'var(--status-good)' }}>
+                <CheckCircle2 size={13} /> Invoice and e-way bill auto-filled from Zoho.
+              </p>
+            )}
+
             <UploadTile
               icon={<FileText size={18} />}
               label={form.hasInvoice ? 'Invoice attached' : 'Scan or upload invoice'}
@@ -133,12 +184,17 @@ export default function VendorPortal() {
         )}
 
         {step === 2 && (
-          <UploadTile
-            icon={<FileText size={18} />}
-            label={form.hasEwayBill ? 'E-way bill attached' : 'Upload e-way bill'}
-            done={form.hasEwayBill}
-            onClick={() => update('hasEwayBill', true)}
-          />
+          <div className="flex flex-col gap-4">
+            <UploadTile
+              icon={<FileText size={18} />}
+              label={form.hasEwayBill ? 'E-way bill attached' : 'Upload e-way bill'}
+              done={form.hasEwayBill}
+              onClick={() => update('hasEwayBill', true)}
+            />
+            <Field label="E-way bill number" hint={form.ewayBillNumber ? 'Auto-filled from Zoho' : undefined}>
+              <Input value={form.ewayBillNumber} onChange={(e) => update('ewayBillNumber', e.target.value)} placeholder="EWB-3312890021" />
+            </Field>
+          </div>
         )}
 
         {step === 3 && (
@@ -176,7 +232,7 @@ function UploadTile({ icon, label, done, onClick }: { icon: React.ReactNode; lab
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed py-8 text-sm font-medium w-full"
+      className="flex items-center justify-center gap-2 rounded-[var(--radius)] border-2 border-dashed py-8 text-sm font-medium w-full"
       style={{ borderColor: done ? 'var(--status-good)' : 'var(--border-strong)', color: done ? 'var(--status-good)' : 'var(--text-muted)' }}
     >
       {done ? <CheckCircle2 size={18} /> : <UploadCloud size={18} />}

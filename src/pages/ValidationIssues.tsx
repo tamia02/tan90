@@ -43,7 +43,7 @@ export default function ValidationIssues() {
         <StatTile label="Stock Exceptions" value={exceptions.length} tone="neutral" icon={<PackageSearch size={16} />} />
       </div>
 
-      <div className="flex items-center gap-2 mb-4 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
+      <div className="flex items-center gap-2 mb-4 rounded-[var(--radius)] border px-3 py-2" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
         <Search size={16} color="var(--text-muted)" />
         <input
           value={query}
