@@ -3,6 +3,7 @@ import type {
   GateEntry,
   GrnRecord,
   LedgerEntry,
+  TeamMember,
   UnloadingRecord,
   ValidationIssue,
   VendorSubmission,
@@ -204,4 +205,14 @@ export const seedFinanceRecords: FinanceRecord[] = [
     notes: 'Defective + missing deducted, debit note DN-3312 issued',
     createdAt: '2026-06-25 12:00:00',
   },
+];
+
+export const seedTeamMembers: TeamMember[] = [
+  { id: 'TM-001', name: 'Ramesh Yadav', phone: '+91 98200 11223', description: 'Gate 1, day shift', role: 'guard', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-002', name: 'Hindustan Chemical Corporation', phone: '+91 22 6712 4400', description: 'Primary raw-material vendor', role: 'vendor', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-003', name: 'Vikram Rao', phone: '+91 98200 33445', description: 'Unloading bay 3-4', role: 'storeExec', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-004', name: 'Arjun Mehta', phone: '+91 98200 55667', description: 'QC — chemicals line', role: 'qc', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-005', name: 'Priya Deshmukh', phone: '+91 98200 77889', description: 'Bhiwandi warehouse', role: 'storeManager', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-006', name: 'Farhan Ali', phone: '+91 98200 99001', description: 'Vendor payments', role: 'finance', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
+  { id: 'TM-007', name: 'Priya Admin', phone: '+91 98200 11000', description: 'Founder — full access', role: 'admin', superAdmin: true, createdAt: '2026-05-02 09:00:00' },
 ];

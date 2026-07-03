@@ -1,4 +1,19 @@
+import type { Role } from './auth';
+
 export type EntryType = 'inward' | 'outward' | 'visitor' | 'loading';
+
+// Admin's team/role directory — a management record of who holds which
+// role. Not wired into the demo login itself (that still accepts any name),
+// this is the CRUD surface for "admin can add and delete any role."
+export interface TeamMember {
+  id: string;
+  name: string;
+  phone: string;
+  description?: string;
+  role: Role | null;
+  superAdmin: boolean;
+  createdAt: string;
+}
 
 export type IssueSeverity = 'hardFail' | 'redFlag' | 'warning';
 export type IssueStatus = 'open' | 'approved' | 'resolved' | 'escalated';

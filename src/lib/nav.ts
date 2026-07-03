@@ -19,31 +19,27 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   end?: boolean;
+  role: Role;
 }
 
-// Each role sees only its own screens — this is the sidebar half of "no
-// moving between portals without logging out." (Admin is the one
-// deliberate exception, per the client's role table.)
-const navByRole: Record<Role, NavItem[]> = {
-  guard: [
-    { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true },
-    { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine },
-    { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList },
-  ],
-  vendor: [{ to: '/vendor', label: 'Vendor Portal', icon: Truck }],
-  storeExec: [{ to: '/unloading', label: 'Unloading Desk', icon: Warehouse }],
-  qc: [{ to: '/qc', label: 'QC Check', icon: PackageSearch }],
-  storeManager: [
-    { to: '/grn', label: 'GRN Check', icon: ClipboardCheck },
-    { to: '/validation', label: 'Validation Issues', icon: ListChecks },
-  ],
-  finance: [{ to: '/finance', label: 'Finance Module', icon: Wallet }],
-  admin: [
-    { to: '/command-center', label: 'Command Center', icon: LayoutGrid },
-    { to: '/admin', label: 'Admin Module', icon: Settings },
-  ],
-};
+// Every screen in the app, tagged with the role that owns it. The nav always
+// shows the full catalog (all the icons) — RequireRole is what actually
+// enforces "no moving between portals without logging out" when an item
+// outside the active role gets clicked, not hiding the item.
+export const allNavItems: NavItem[] = [
+  { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true, role: 'guard' },
+  { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine, role: 'guard' },
+  { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList, role: 'guard' },
+  { to: '/vendor', label: 'Vendor Portal', icon: Truck, role: 'vendor' },
+  { to: '/unloading', label: 'Unloading Desk', icon: Warehouse, role: 'storeExec' },
+  { to: '/qc', label: 'QC Check', icon: PackageSearch, role: 'qc' },
+  { to: '/grn', label: 'GRN Check', icon: ClipboardCheck, role: 'storeManager' },
+  { to: '/validation', label: 'Validation Issues', icon: ListChecks, role: 'storeManager' },
+  { to: '/finance', label: 'Finance Module', icon: Wallet, role: 'finance' },
+  { to: '/command-center', label: 'Command Center', icon: LayoutGrid, role: 'admin' },
+  { to: '/admin', label: 'Admin Module', icon: Settings, role: 'admin' },
+];
 
 export function navForRole(role: Role | undefined): NavItem[] {
-  return role ? navByRole[role] : [];
+  return role ? allNavItems.filter((n) => n.role === role) : [];
 }

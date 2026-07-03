@@ -4,6 +4,7 @@ import {
   seedGateEntries,
   seedGrnRecords,
   seedLedgerEntries,
+  seedTeamMembers,
   seedUnloadingRecords,
   seedValidationIssues,
   seedVendorSubmissions,
@@ -16,6 +17,7 @@ import type {
   LedgerEntry,
   QcResult,
   QcSplit,
+  TeamMember,
   UnloadingRecord,
   ValidationIssue,
   VendorSubmission,
@@ -56,6 +58,7 @@ interface State {
   grnRecords: GrnRecord[];
   ledger: LedgerEntry[];
   finance: FinanceRecord[];
+  teamMembers: TeamMember[];
   auth: ActiveSession | null;
   zoho: ZohoConnection;
   auditLog: AuditEntry[];
@@ -70,6 +73,7 @@ const initialState: State = {
   grnRecords: seedGrnRecords,
   ledger: seedLedgerEntries,
   finance: seedFinanceRecords,
+  teamMembers: seedTeamMembers,
   auth: null,
   zoho: { connected: false, syncCount: 0 },
   auditLog: [],
@@ -98,7 +102,9 @@ type Action =
   | { type: 'LOGOUT' }
   | { type: 'ZOHO_CONNECT'; payload: { orgName: string } }
   | { type: 'ZOHO_DISCONNECT' }
-  | { type: 'ZOHO_SYNCED' };
+  | { type: 'ZOHO_SYNCED' }
+  | { type: 'ADD_TEAM_MEMBER'; payload: TeamMember }
+  | { type: 'DELETE_TEAM_MEMBER'; payload: { id: string } };
 
 function nextId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -261,6 +267,12 @@ function baseReducer(state: State, action: Action): State {
     case 'ZOHO_SYNCED':
       return { ...state, zoho: { ...state.zoho, lastSyncedAt: new Date().toISOString(), syncCount: state.zoho.syncCount + 1 } };
 
+    case 'ADD_TEAM_MEMBER':
+      return { ...state, teamMembers: [action.payload, ...state.teamMembers] };
+
+    case 'DELETE_TEAM_MEMBER':
+      return { ...state, teamMembers: state.teamMembers.filter((m) => m.id !== action.payload.id) };
+
     default:
       return state;
   }
@@ -305,6 +317,15 @@ function describeAction(action: Action, prevState: State): { action: string; det
       return { action: 'Zoho disconnected', detail: '' };
     case 'ZOHO_SYNCED':
       return { action: 'Zoho synced manually', detail: '' };
+    case 'ADD_TEAM_MEMBER':
+      return {
+        action: `Team member added${action.payload.superAdmin ? ' (Super Admin)' : ''}`,
+        detail: `${action.payload.name} · ${action.payload.role ? roleMeta[action.payload.role].label : 'No role'}`,
+      };
+    case 'DELETE_TEAM_MEMBER': {
+      const removed = prevState.teamMembers.find((m) => m.id === action.payload.id);
+      return { action: 'Team member removed', detail: removed ? `${removed.name} · ${removed.role ? roleMeta[removed.role].label : 'No role'}` : action.payload.id };
+    }
     default:
       return null;
   }
@@ -332,6 +353,7 @@ function loadInitial(): State {
         ...parsed,
         auth: parsed.auth ?? null,
         qcResults: parsed.qcResults ?? initialState.qcResults,
+        teamMembers: parsed.teamMembers ?? initialState.teamMembers,
         zoho: { ...initialState.zoho, ...parsed.zoho },
         auditLog: parsed.auditLog ?? initialState.auditLog,
       };
