@@ -1,22 +1,13 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { ChevronDown, KeyRound, LogOut, Menu, Search, User, Wifi, X } from 'lucide-react';
-import { allNavItems, navForRole, type NavItem } from '../lib/nav';
+import { ChevronDown, LogOut, Menu, Search, User, Wifi, X } from 'lucide-react';
+import { navForRole, type NavItem } from '../lib/nav';
 import { resetDemo, useStore } from '../lib/store';
-import { roleMeta, roleOrder, type Role } from '../lib/auth';
+import { roleMeta } from '../lib/auth';
 
-// Shows every module's icon always. `locked` (true when signed into a
-// different role, or admin) dims the row and swaps a lock icon in — clicking
-// it still works, it just routes into RequireRole's "log out first" screen
-// or that module's own login rather than silently switching anything.
-function NavRow({
-  to,
-  label,
-  icon: Icon,
-  end,
-  onClick,
-  locked,
-}: Omit<NavItem, 'role'> & { onClick?: () => void; locked?: boolean }) {
+// Strictly the signed-in role's own screens — nothing from any other
+// module ever appears here, per the client. Logging out clears the list.
+function NavRow({ to, label, icon: Icon, end, onClick }: Omit<NavItem, 'role'> & { onClick?: () => void }) {
   return (
     <NavLink
       to={to}
@@ -29,8 +20,7 @@ function NavRow({
       }
       style={({ isActive }) => ({
         background: isActive ? 'var(--brand)' : 'transparent',
-        color: isActive ? '#fff' : locked ? 'var(--text-muted)' : 'var(--text-secondary)',
-        opacity: locked && !isActive ? 0.6 : 1,
+        color: isActive ? '#fff' : 'var(--text-secondary)',
       })}
     >
       <Icon size={18} />
@@ -103,25 +93,11 @@ function ProfileMenu() {
   );
 }
 
-function GroupLabel({ children }: { children: string }) {
-  return (
-    <div className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-      {children}
-    </div>
-  );
-}
-
-function isLocked(itemRole: Role, activeRole: Role | undefined) {
-  if (!activeRole) return false; // nobody signed in — nothing to lock against
-  if (activeRole === 'admin') return false; // admin reaches everything
-  return itemRole !== activeRole;
-}
-
 export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { auth, dispatch } = useStore();
-  const mobileItems = navForRole(auth?.role).slice(0, 4);
-  const groups = roleOrder.map((role) => ({ role, meta: roleMeta[role], items: allNavItems.filter((n) => n.role === role) }));
+  const navItems = navForRole(auth?.role);
+  const mobileItems = navItems.slice(0, 4);
 
   return (
     <div className="min-h-svh flex" style={{ background: 'var(--surface-2)' }}>
@@ -142,19 +118,18 @@ export default function Layout() {
               Tan90 ERP
             </div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              GRN · Store · Ledger
+              {auth ? roleMeta[auth.role].moduleName : 'GRN · Store · Ledger'}
             </div>
           </div>
         </Link>
 
-        {groups.map((group) => (
-          <div key={group.role}>
-            <GroupLabel>{group.meta.label}</GroupLabel>
-            {group.items.map((item) => (
-              <NavRow key={item.to} {...item} locked={isLocked(item.role, auth?.role)} />
-            ))}
-          </div>
-        ))}
+        {navItems.length === 0 ? (
+          <p className="text-xs px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+            Sign in to a module to see its screens here.
+          </p>
+        ) : (
+          navItems.map((item) => <NavRow key={item.to} {...item} />)
+        )}
 
         <div className="mt-auto pt-4 flex flex-col gap-1">
           {auth && (
@@ -188,21 +163,19 @@ export default function Layout() {
           >
             <div className="flex items-center justify-between pb-4">
               <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
-                Tan90 ERP
+                {auth ? roleMeta[auth.role].label : 'Tan90 ERP'}
               </div>
               <button onClick={() => setDrawerOpen(false)} aria-label="Close menu">
                 <X size={20} />
               </button>
             </div>
-            <NavRow to="/" label="Module Access" icon={KeyRound} onClick={() => setDrawerOpen(false)} end />
-            {groups.map((group) => (
-              <div key={group.role}>
-                <GroupLabel>{group.meta.label}</GroupLabel>
-                {group.items.map((item) => (
-                  <NavRow key={item.to} {...item} locked={isLocked(item.role, auth?.role)} onClick={() => setDrawerOpen(false)} />
-                ))}
-              </div>
-            ))}
+            {navItems.length === 0 ? (
+              <p className="text-xs px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+                Sign in to a module to see its screens here.
+              </p>
+            ) : (
+              navItems.map((item) => <NavRow key={item.to} {...item} onClick={() => setDrawerOpen(false)} />)
+            )}
             <div className="mt-auto pt-4 flex flex-col gap-1">
               {auth && (
                 <button

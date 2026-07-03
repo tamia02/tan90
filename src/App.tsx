@@ -1,6 +1,7 @@
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
 import RequireRole from './components/RequireRole';
+import RequireAuth from './components/RequireAuth';
 import { StoreProvider } from './lib/store';
 import ModuleLogin from './pages/ModuleLogin';
 import RoleLogin from './pages/RoleLogin';
@@ -15,6 +16,10 @@ import QcModule from './pages/QcModule';
 import GrnCheck from './pages/GrnCheck';
 import FinanceModule from './pages/FinanceModule';
 import AdminModule from './pages/AdminModule';
+import Notifications from './pages/Notifications';
+import SettingsPage from './pages/SettingsPage';
+import ActivityLog from './pages/ActivityLog';
+import HelpSupport from './pages/HelpSupport';
 
 export default function App() {
   return (
@@ -110,6 +115,38 @@ export default function App() {
                 <RequireRole role="admin">
                   <AdminModule />
                 </RequireRole>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <RequireAuth>
+                  <Notifications />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/activity"
+              element={
+                <RequireAuth>
+                  <ActivityLog />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <RequireAuth>
+                  <SettingsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/help"
+              element={
+                <RequireAuth>
+                  <HelpSupport />
+                </RequireAuth>
               }
             />
           </Route>
