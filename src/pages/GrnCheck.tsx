@@ -1,9 +1,8 @@
 import { Fragment, useState } from 'react';
 import { useStore } from '../lib/store';
-import { Button, Card, CheckboxRow, EmptyState, Field, Input, PageHeader } from '../components/ui';
-import { GateStatusBadge } from '../components/Badge';
+import { Button, Card, EmptyState, Field, Input, PageHeader } from '../components/ui';
 import { gateEntryLabel } from '../lib/derived';
-import { Boxes, Camera, CheckCircle2, ChevronDown, ChevronUp, PackageCheck } from 'lucide-react';
+import { Boxes, ChevronDown, ChevronUp, PackageCheck } from 'lucide-react';
 import type { LedgerBucket } from '../lib/types';
 
 const bucketLabel: Record<LedgerBucket, string> = {
@@ -20,22 +19,21 @@ const bucketTone: Record<LedgerBucket, string> = {
   qcHold: 'var(--status-warning)',
 };
 
-export default function StoreManager() {
-  const { gateEntries, unloadingRecords, grnRecords, finance, ledger } = useStore();
-  const [tab, setTab] = useState<'unloading' | 'putaway' | 'ledger'>('unloading');
+export default function GrnCheck() {
+  const { gateEntries, qcResults, grnRecords, finance, ledger } = useStore();
+  const [tab, setTab] = useState<'grn' | 'putaway' | 'ledger'>('grn');
   const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
 
-  const readyForUnloading = gateEntries.filter((g) => g.status === 'validated');
-  const inUnloading = gateEntries.filter((g) => g.status === 'unloading' || g.status === 'grn');
+  const readyForGrn = gateEntries.filter((g) => g.status === 'qc_done');
 
   return (
     <div className="max-w-4xl mx-auto">
-      <PageHeader title="Store Manager" subtitle="Unloading, put-away and the immutable stock ledger." />
+      <PageHeader title="GRN Check" subtitle="Post the QC-checked receipt to stock, then put-away and the immutable ledger." />
 
       <div className="flex gap-2 mb-5">
         {(
           [
-            ['unloading', 'Unloading Desk'],
+            ['grn', 'GRN Check'],
             ['putaway', 'Put-away'],
             ['ledger', 'Immutable Ledger'],
           ] as const
@@ -55,35 +53,16 @@ export default function StoreManager() {
         ))}
       </div>
 
-      {tab === 'unloading' && (
+      {tab === 'grn' && (
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Cleared validation, ready for unloading
+            QC Check complete, ready for GRN posting
           </h2>
-          {readyForUnloading.length === 0 && <EmptyState text="Nothing waiting — resolve issues in Validation Engine first." />}
-          {readyForUnloading.map((g) => (
-            <UnloadingCard key={g.id} gateId={g.id} label={gateEntryLabel(g)} />
-          ))}
-
-          <h2 className="text-sm font-semibold mt-4" style={{ color: 'var(--text-primary)' }}>
-            Unloaded / in GRN
-          </h2>
-          {inUnloading.length === 0 && <EmptyState text="No entries currently unloading." />}
-          {inUnloading.map((g) => {
-            const record = unloadingRecords.find((u) => u.gateEntryId === g.id);
-            return (
-              <Card key={g.id} className="p-4 flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {gateEntryLabel(g)}
-                  </div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {record ? `${record.boxCount} boxes · ${record.stagingArea} · POD/LR ${record.podLrRef}` : 'No unloading record'}
-                  </div>
-                </div>
-                <GateStatusBadge status={g.status} />
-              </Card>
-            );
+          {readyForGrn.length === 0 && <EmptyState text="Nothing waiting — QC Check hasn't sent anything through yet." />}
+          {readyForGrn.map((g) => {
+            const qc = qcResults.find((r) => r.gateEntryId === g.id);
+            if (!qc) return null;
+            return <GrnCard key={g.id} gateId={g.id} label={gateEntryLabel(g)} qc={qc} />;
           })}
         </div>
       )}
@@ -202,77 +181,58 @@ export default function StoreManager() {
   );
 }
 
-function UnloadingCard({ gateId, label }: { gateId: string; label: string }) {
+function GrnCard({ gateId, label, qc }: { gateId: string; label: string; qc: import('../lib/types').QcResult }) {
   const { dispatch } = useStore();
-  const [open, setOpen] = useState(false);
-  const [boxCount, setBoxCount] = useState('');
-  const [stagingArea, setStagingArea] = useState('');
-  const [unloadedBy, setUnloadedBy] = useState('');
-  const [podLrRef, setPodLrRef] = useState('');
-  const [proofCaptured, setProofCaptured] = useState(false);
+  const [suggestedBin, setSuggestedBin] = useState('');
 
-  function complete() {
-    const startedAt = new Date().toISOString();
-    dispatch({
-      type: 'START_UNLOADING',
-      payload: { gateEntryId: gateId, boxCount: Number(boxCount) || 0, stagingArea, unloadedBy, podLrRef, startedAt },
-    });
-    dispatch({ type: 'COMPLETE_UNLOADING', payload: { gateEntryId: gateId, completedAt: new Date().toISOString() } });
-    setOpen(false);
+  function post() {
+    dispatch({ type: 'SAVE_GRN', payload: { gateEntryId: gateId, suggestedBin: suggestedBin || 'UNBINNED' } });
   }
 
   return (
     <Card className="p-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-1 mb-3">
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
           {label}
         </span>
-        <Button variant={open ? 'secondary' : 'primary'} onClick={() => setOpen((o) => !o)}>
-          {open ? 'Cancel' : 'Complete unloading'}
-        </Button>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {qc.sku}
+        </span>
       </div>
-      {open && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-          <Field label="Box count">
-            <Input type="number" value={boxCount} onChange={(e) => setBoxCount(e.target.value)} required />
-          </Field>
-          <Field label="Staging area">
-            <Input value={stagingArea} onChange={(e) => setStagingArea(e.target.value)} placeholder="Staging Bay 2" required />
-          </Field>
-          <Field label="Unloaded by">
-            <Input value={unloadedBy} onChange={(e) => setUnloadedBy(e.target.value)} placeholder="Store executive name" required />
-          </Field>
-          <Field label="POD / LR reference">
-            <Input value={podLrRef} onChange={(e) => setPodLrRef(e.target.value)} placeholder="LR-88213" required />
-          </Field>
 
-          <button
-            type="button"
-            onClick={() => setProofCaptured(true)}
-            className="sm:col-span-2 flex items-center justify-center gap-2 rounded-[var(--radius)] border-2 border-dashed py-4 text-sm font-medium"
-            style={{
-              borderColor: proofCaptured ? 'var(--status-good)' : 'var(--border-strong)',
-              color: proofCaptured ? 'var(--status-good)' : 'var(--text-muted)',
-            }}
-          >
-            {proofCaptured ? <CheckCircle2 size={16} /> : <Camera size={16} />}
-            {proofCaptured ? 'Seal / load proof captured' : 'Capture seal / load stamp proof'}
-          </button>
-          <div className="sm:col-span-2">
-            <CheckboxRow checked={proofCaptured} onChange={(e) => setProofCaptured(e.target.checked)}>
-              Stamped proof confirmed for this unloading
-            </CheckboxRow>
-          </div>
-
-          <Button
-            className="sm:col-span-2"
-            onClick={complete}
-            disabled={!boxCount || !stagingArea || !unloadedBy || !podLrRef || !proofCaptured}
-          >
-            Save &amp; send to GRN / QC
-          </Button>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center mb-3">
+        <Metric label="Invoice" value={qc.invoiceQty} />
+        <Metric label="Accepted" value={qc.split.accepted} tone="var(--status-good)" />
+        <Metric label="QC Hold" value={qc.split.qcHold} tone="var(--status-warning)" />
+        <Metric label="Defective" value={qc.split.defective} tone="var(--status-serious)" />
+        <Metric label="Missing" value={qc.missing} tone="var(--status-critical)" />
+      </div>
+      {qc.qcReasons && (
+        <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
+          QC notes: {qc.qcReasons}
+        </p>
       )}
+
+      <Field label="Suggested bin">
+        <Input value={suggestedBin} onChange={(e) => setSuggestedBin(e.target.value)} placeholder="BHW-CHEM-A1" />
+      </Field>
+
+      <Button className="mt-4" onClick={post}>
+        Post GRN &amp; update stock
+      </Button>
     </Card>
+  );
+}
+
+function Metric({ label, value, tone }: { label: string; value: number; tone?: string }) {
+  return (
+    <div>
+      <div className="text-lg font-semibold tabular-nums" style={{ color: tone ?? 'var(--text-primary)' }}>
+        {value}
+      </div>
+      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </div>
+    </div>
   );
 }

@@ -42,7 +42,7 @@ export default function CommandCenter() {
         <ModuleStatCard label="Gate Entries" value={gateEntries.length} icon={<Truck size={20} />} to="/guard" />
         <ModuleStatCard label="Vendor Submissions" value={vendorSubmissions.length} icon={<ClipboardCheck size={20} />} to="/vendor" />
         <ModuleStatCard label="GRN Posted" value={grnRecords.length} icon={<PackageSearch size={20} />} to="/qc" />
-        <ModuleStatCard label="Ledger Postings" value={ledger.length} icon={<BookOpen size={20} />} to="/store" />
+        <ModuleStatCard label="Ledger Postings" value={ledger.length} icon={<BookOpen size={20} />} to="/grn" />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatTile label="Hard Fail" value={counts.hardFail} tone="critical" icon={<AlertOctagon size={16} />} />

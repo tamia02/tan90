@@ -14,6 +14,7 @@ import type {
   GrnRecord,
   IssueStatus,
   LedgerEntry,
+  QcResult,
   QcSplit,
   UnloadingRecord,
   ValidationIssue,
@@ -21,7 +22,12 @@ import type {
 } from './types';
 import { roleMeta, type Role } from './auth';
 
-export interface Session {
+// Only one role can be signed in at a time — logging into a new role fully
+// replaces whatever was signed in before. This, plus RequireRole blocking
+// (not silently redirecting to) other portals, is what makes "no moving
+// between portals without logging out" actually true rather than a UI hint.
+export interface ActiveSession {
+  role: Role;
   name: string;
   loggedInAt: string;
 }
@@ -46,10 +52,11 @@ interface State {
   issues: ValidationIssue[];
   vendorSubmissions: VendorSubmission[];
   unloadingRecords: UnloadingRecord[];
+  qcResults: QcResult[];
   grnRecords: GrnRecord[];
   ledger: LedgerEntry[];
   finance: FinanceRecord[];
-  auth: Partial<Record<Role, Session>>;
+  auth: ActiveSession | null;
   zoho: ZohoConnection;
   auditLog: AuditEntry[];
 }
@@ -59,10 +66,11 @@ const initialState: State = {
   issues: seedValidationIssues,
   vendorSubmissions: seedVendorSubmissions,
   unloadingRecords: seedUnloadingRecords,
+  qcResults: [],
   grnRecords: seedGrnRecords,
   ledger: seedLedgerEntries,
   finance: seedFinanceRecords,
-  auth: {},
+  auth: null,
   zoho: { connected: false, syncCount: 0 },
   auditLog: [],
 };
@@ -74,7 +82,7 @@ type Action =
   | { type: 'START_UNLOADING'; payload: UnloadingRecord }
   | { type: 'COMPLETE_UNLOADING'; payload: { gateEntryId: string; completedAt: string } }
   | {
-      type: 'SAVE_GRN';
+      type: 'SAVE_QC_RESULT';
       payload: {
         gateEntryId: string;
         sku: string;
@@ -82,12 +90,12 @@ type Action =
         invoiceQty: number;
         split: QcSplit;
         qcReasons?: string;
-        suggestedBin: string;
       };
     }
+  | { type: 'SAVE_GRN'; payload: { gateEntryId: string; suggestedBin: string } }
   | { type: 'SET_VENDOR_STATUS'; payload: { gateEntryId: string; vendorStatus: FinanceRecord['vendorStatus']; notes?: string } }
   | { type: 'LOGIN'; payload: { role: Role; name: string } }
-  | { type: 'LOGOUT'; payload: { role: Role } }
+  | { type: 'LOGOUT' }
   | { type: 'ZOHO_CONNECT'; payload: { orgName: string } }
   | { type: 'ZOHO_DISCONNECT' }
   | { type: 'ZOHO_SYNCED' };
@@ -145,19 +153,45 @@ function baseReducer(state: State, action: Action): State {
         unloadingRecords: state.unloadingRecords.map((u) =>
           u.gateEntryId === action.payload.gateEntryId ? { ...u, completedAt: action.payload.completedAt } : u,
         ),
+        // 'grn' here means "ready for QC Check" — GRN Check/posting is a
+        // separate, later step owned by Store Manager, not this one.
         gateEntries: state.gateEntries.map((g) => (g.id === action.payload.gateEntryId ? { ...g, status: 'grn' } : g)),
       };
 
-    case 'SAVE_GRN': {
-      const { gateEntryId, sku, poQty, invoiceQty, split, qcReasons, suggestedBin } = action.payload;
+    case 'SAVE_QC_RESULT': {
+      const { gateEntryId, sku, poQty, invoiceQty, split, qcReasons } = action.payload;
       const physicalReceived = split.accepted + split.qcHold + split.defective + split.rejected;
       const missing = Math.max(invoiceQty - physicalReceived, 0);
-      const grn: GrnRecord = {
+      const result: QcResult = {
         gateEntryId,
         sku,
         poQty,
         invoiceQty,
         physicalReceived,
+        split,
+        missing,
+        qcReasons,
+        createdAt: new Date().toISOString(),
+      };
+      return {
+        ...state,
+        qcResults: [result, ...state.qcResults],
+        gateEntries: state.gateEntries.map((g) => (g.id === gateEntryId ? { ...g, status: 'qc_done' } : g)),
+      };
+    }
+
+    case 'SAVE_GRN': {
+      const { gateEntryId, suggestedBin } = action.payload;
+      const qc = state.qcResults.find((r) => r.gateEntryId === gateEntryId);
+      if (!qc) return state;
+      const { sku, poQty, invoiceQty, split, missing, qcReasons } = qc;
+
+      const grn: GrnRecord = {
+        gateEntryId,
+        sku,
+        poQty,
+        invoiceQty,
+        physicalReceived: qc.physicalReceived,
         split,
         missing,
         qcReasons,
@@ -210,14 +244,11 @@ function baseReducer(state: State, action: Action): State {
     case 'LOGIN':
       return {
         ...state,
-        auth: { ...state.auth, [action.payload.role]: { name: action.payload.name, loggedInAt: new Date().toISOString() } },
+        auth: { role: action.payload.role, name: action.payload.name, loggedInAt: new Date().toISOString() },
       };
 
-    case 'LOGOUT': {
-      const auth = { ...state.auth };
-      delete auth[action.payload.role];
-      return { ...state, auth };
-    }
+    case 'LOGOUT':
+      return { ...state, auth: null };
 
     case 'ZOHO_CONNECT': {
       const now = new Date().toISOString();
@@ -235,7 +266,7 @@ function baseReducer(state: State, action: Action): State {
   }
 }
 
-function describeAction(action: Action): { action: string; detail: string } | null {
+function describeAction(action: Action, prevState: State): { action: string; detail: string } | null {
   switch (action.type) {
     case 'ADD_VENDOR_SUBMISSION':
       return { action: 'Vendor submission created', detail: `${action.payload.poNumber} · ${action.payload.vendorName}` };
@@ -254,18 +285,20 @@ function describeAction(action: Action): { action: string; detail: string } | nu
     case 'START_UNLOADING':
       return null; // paired with COMPLETE_UNLOADING in the same UI action — logged once, not twice
     case 'COMPLETE_UNLOADING':
-      return { action: 'Unloading completed', detail: action.payload.gateEntryId };
-    case 'SAVE_GRN':
+      return { action: 'Unloading completed, sent to QC Check', detail: action.payload.gateEntryId };
+    case 'SAVE_QC_RESULT':
       return {
-        action: 'GRN posted, stock updated',
-        detail: `${action.payload.gateEntryId} · accepted ${action.payload.split.accepted}, defective ${action.payload.split.defective}, rejected ${action.payload.split.rejected}`,
+        action: 'QC Check recorded',
+        detail: `${action.payload.gateEntryId} · accepted ${action.payload.split.accepted}, defective ${action.payload.split.defective}, rejected ${action.payload.split.rejected} · sent to GRN Check`,
       };
+    case 'SAVE_GRN':
+      return { action: 'GRN Check posted, stock updated', detail: `${action.payload.gateEntryId} · bin ${action.payload.suggestedBin}` };
     case 'SET_VENDOR_STATUS':
       return { action: `Vendor status set to ${action.payload.vendorStatus}`, detail: action.payload.gateEntryId };
     case 'LOGIN':
       return { action: `${roleMeta[action.payload.role].label} signed in`, detail: action.payload.name };
     case 'LOGOUT':
-      return { action: `${roleMeta[action.payload.role].label} signed out`, detail: '' };
+      return prevState.auth ? { action: `${roleMeta[prevState.auth.role].label} signed out`, detail: prevState.auth.name } : null;
     case 'ZOHO_CONNECT':
       return { action: 'Zoho connected', detail: action.payload.orgName };
     case 'ZOHO_DISCONNECT':
@@ -281,13 +314,13 @@ function describeAction(action: Action): { action: string; detail: string } | nu
 // meaningful action leaves a row here, and nothing ever removes one.
 function reducer(state: State, action: Action): State {
   const next = baseReducer(state, action);
-  const described = describeAction(action);
+  const described = describeAction(action, state);
   if (!described) return next;
   const entry: AuditEntry = { id: nextId('AL'), timestamp: new Date().toISOString(), ...described };
   return { ...next, auditLog: [entry, ...next.auditLog].slice(0, 300) };
 }
 
-const STORAGE_KEY = 'tan90-grn-demo-v1';
+const STORAGE_KEY = 'tan90-grn-demo-v2';
 
 function loadInitial(): State {
   try {
@@ -297,7 +330,8 @@ function loadInitial(): State {
       return {
         ...initialState,
         ...parsed,
-        auth: { ...initialState.auth, ...parsed.auth },
+        auth: parsed.auth ?? null,
+        qcResults: parsed.qcResults ?? initialState.qcResults,
         zoho: { ...initialState.zoho, ...parsed.zoho },
         auditLog: parsed.auditLog ?? initialState.auditLog,
       };

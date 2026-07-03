@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { Check, CheckCircle2 } from 'lucide-react';
+import { Check, CheckCircle2, LogOut } from 'lucide-react';
 import { Card, Button } from '../components/ui';
-import { roleCanAccess, roleMeta, type Role } from '../lib/auth';
+import { roleMeta, roleOrder, type Role } from '../lib/auth';
 import { useStore } from '../lib/store';
 
-const roles = Object.values(roleMeta);
+const roles = roleOrder.map((r) => roleMeta[r]);
 
 export default function ModuleLogin() {
   const navigate = useNavigate();
@@ -29,22 +29,37 @@ export default function ModuleLogin() {
           Module Access
         </h1>
         <p className="text-sm mt-1.5 max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          Select a role and sign in.
+          Select a role and sign in. Only one module can be open at a time.
         </p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 mb-8">
-        <StatPill label="Roles" value="6" hint="Separate entry points" />
+      <div className="flex flex-wrap justify-center gap-2 mb-6">
+        <StatPill label="Roles" value="7" hint="Separate entry points" />
         <StatPill label="Flow" value="Live" hint="GRN to ledger" />
         <StatPill label="Mode" value="Client Ready" hint="Production labels" />
       </div>
 
+      {auth && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-[var(--radius)] border px-4 py-3 mb-6"
+          style={{ background: 'var(--brand-bg)', borderColor: 'var(--brand)' }}
+        >
+          <p className="text-sm" style={{ color: 'var(--brand)' }}>
+            Signed in as <strong>{roleMeta[auth.role].label}</strong> ({auth.name}). Log out to switch modules.
+          </p>
+          <Button variant="secondary" onClick={() => dispatch({ type: 'LOGOUT' })}>
+            <LogOut size={14} />
+            Log out
+          </Button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {roles.map((meta) => {
-          const signedIn = roleCanAccess(auth, meta.role) && Boolean(auth[meta.role]);
-          const sessionName = auth[meta.role]?.name;
+          const isMine = auth?.role === meta.role;
+          const blocked = Boolean(auth) && !isMine;
           return (
-            <Card key={meta.role} className="p-4 flex flex-col">
+            <Card key={meta.role} className="p-4 flex flex-col" style={blocked ? { opacity: 0.55 } : undefined}>
               <div className="flex items-start gap-3 mb-3">
                 <div
                   className="w-10 h-10 rounded-[var(--radius)] grid place-items-center shrink-0"
@@ -60,7 +75,7 @@ export default function ModuleLogin() {
                     {meta.moduleName}
                   </div>
                 </div>
-                {signedIn && <CheckCircle2 size={16} color="var(--status-good)" className="ml-auto shrink-0" />}
+                {isMine && <CheckCircle2 size={16} color="var(--status-good)" className="ml-auto shrink-0" />}
               </div>
 
               <ul className="flex flex-col gap-1.5 mb-4 flex-1">
@@ -72,18 +87,27 @@ export default function ModuleLogin() {
                 ))}
               </ul>
 
-              {signedIn && (
+              {isMine && (
                 <p className="text-xs mb-2" style={{ color: 'var(--status-good)' }}>
-                  Signed in as {sessionName}
+                  Signed in as {auth!.name}
+                </p>
+              )}
+              {blocked && (
+                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Log out of {roleMeta[auth!.role].label} to open this.
                 </p>
               )}
 
               <div className="flex gap-2">
-                <Button variant="secondary" className="flex-1" onClick={() => demoLogin(meta.role)}>
+                <Button variant="secondary" className="flex-1" disabled={blocked} onClick={() => demoLogin(meta.role)}>
                   Demo Login
                 </Button>
-                <Button className="flex-1" onClick={() => navigate(signedIn ? meta.homePath : `/login/${meta.role}`)}>
-                  {signedIn ? 'Continue' : 'Secure Login'}
+                <Button
+                  className="flex-1"
+                  disabled={blocked}
+                  onClick={() => navigate(isMine ? meta.homePath : `/login/${meta.role}`)}
+                >
+                  {isMine ? 'Continue' : 'Secure Login'}
                 </Button>
               </div>
             </Card>

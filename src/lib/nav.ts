@@ -4,14 +4,15 @@ import {
   ScanLine,
   ClipboardList,
   Truck,
-  Store,
-  ClipboardCheck,
   Warehouse,
+  PackageSearch,
+  ClipboardCheck,
+  ListChecks,
   Wallet,
   Settings,
-  KeyRound,
   type LucideIcon,
 } from 'lucide-react';
+import type { Role } from './auth';
 
 export interface NavItem {
   to: string;
@@ -20,28 +21,29 @@ export interface NavItem {
   end?: boolean;
 }
 
-export const navItems: NavItem[] = [
-  { to: '/', label: 'Module Login', icon: KeyRound, end: true },
-  { to: '/command-center', label: 'Command Center', icon: LayoutGrid },
-  { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true },
-  { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine },
-  { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList },
-  { to: '/vendor', label: 'Vendor Portal', icon: Truck },
-  { to: '/validation', label: 'Validation Issues', icon: ClipboardCheck },
-  { to: '/store', label: 'Store Manager', icon: Warehouse },
-  { to: '/qc', label: 'QC Module', icon: Store },
-  { to: '/finance', label: 'Finance Module', icon: Wallet },
-  { to: '/admin', label: 'Admin Module', icon: Settings },
-];
+// Each role sees only its own screens — this is the sidebar half of "no
+// moving between portals without logging out." (Admin is the one
+// deliberate exception, per the client's role table.)
+const navByRole: Record<Role, NavItem[]> = {
+  guard: [
+    { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true },
+    { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine },
+    { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList },
+  ],
+  vendor: [{ to: '/vendor', label: 'Vendor Portal', icon: Truck }],
+  storeExec: [{ to: '/unloading', label: 'Unloading Desk', icon: Warehouse }],
+  qc: [{ to: '/qc', label: 'QC Check', icon: PackageSearch }],
+  storeManager: [
+    { to: '/grn', label: 'GRN Check', icon: ClipboardCheck },
+    { to: '/validation', label: 'Validation Issues', icon: ListChecks },
+  ],
+  finance: [{ to: '/finance', label: 'Finance Module', icon: Wallet }],
+  admin: [
+    { to: '/command-center', label: 'Command Center', icon: LayoutGrid },
+    { to: '/admin', label: 'Admin Module', icon: Settings },
+  ],
+};
 
-// Sidebar, grouped into labeled sections (mirrors the client's reference admin template).
-export const navGroups: { label: string; items: NavItem[] }[] = [
-  { label: 'Control Tower', items: navItems.filter((n) => n.to === '/command-center') },
-  { label: 'Gate & Vendor', items: navItems.filter((n) => ['/guard', '/guard/scan', '/guard/entries', '/vendor'].includes(n.to)) },
-  { label: 'Validation & Stock', items: navItems.filter((n) => ['/validation', '/store', '/qc'].includes(n.to)) },
-  { label: 'Finance', items: navItems.filter((n) => n.to === '/finance') },
-  { label: 'Admin', items: navItems.filter((n) => n.to === '/admin') },
-];
-
-// Subset shown on the mobile bottom tab bar; the rest live in the "More" sheet.
-export const mobilePrimaryNav = ['/command-center', '/guard', '/validation', '/store'] as const;
+export function navForRole(role: Role | undefined): NavItem[] {
+  return role ? navByRole[role] : [];
+}

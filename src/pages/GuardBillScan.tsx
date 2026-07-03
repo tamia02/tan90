@@ -175,11 +175,8 @@ export default function GuardBillScan() {
             <Button variant="secondary" className="flex-1" onClick={() => setSaved(null)}>
               New gate entry
             </Button>
-            <Button variant="secondary" className="flex-1" onClick={() => navigate('/guard/entries')}>
+            <Button className="flex-1" onClick={() => navigate('/guard/entries')}>
               Guard Entries
-            </Button>
-            <Button className="flex-1" onClick={() => navigate('/validation')}>
-              Validation Engine
             </Button>
           </div>
         </Card>

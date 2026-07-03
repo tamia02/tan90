@@ -64,7 +64,8 @@ const gateStatusLabel: Record<GateEntryStatus, string> = {
   pending_validation: 'Pending Validation',
   validated: 'Validated',
   unloading: 'Unloading',
-  grn: 'Ready for GRN/QC',
+  grn: 'Ready for QC Check',
+  qc_done: 'Ready for GRN Check',
   posted: 'Posted',
   closed: 'Closed',
 };

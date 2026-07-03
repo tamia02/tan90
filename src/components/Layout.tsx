@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { ChevronDown, LogOut, Menu, Search, Settings, User, Wifi, X } from 'lucide-react';
-import { mobilePrimaryNav, navGroups, navItems, type NavItem } from '../lib/nav';
+import { ChevronDown, LogOut, Menu, Search, User, Wifi, X } from 'lucide-react';
+import { navForRole, type NavItem } from '../lib/nav';
 import { resetDemo, useStore } from '../lib/store';
 import { roleMeta } from '../lib/auth';
 
@@ -27,18 +27,19 @@ function NavRow({ to, label, icon: Icon, end, onClick }: NavItem & { onClick?: (
   );
 }
 
-function GroupLabel({ children }: { children: string }) {
-  return (
-    <div className="px-3 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-      {children}
-    </div>
-  );
-}
-
 function ProfileMenu() {
   const { auth, dispatch } = useStore();
   const [open, setOpen] = useState(false);
-  const sessions = (Object.keys(auth) as (keyof typeof auth)[]).filter((r) => auth[r]);
+
+  if (!auth) {
+    return (
+      <Link to="/" className="text-sm font-medium px-3 py-1.5 rounded-lg" style={{ color: 'var(--brand)' }}>
+        Sign in
+      </Link>
+    );
+  }
+
+  const meta = roleMeta[auth.role];
 
   return (
     <div className="relative">
@@ -50,7 +51,7 @@ function ProfileMenu() {
           <User size={16} />
         </div>
         <span className="hidden sm:block text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-          {sessions.length === 0 ? 'Guest' : sessions.length === 1 ? roleMeta[sessions[0]].label : `${sessions.length} sessions`}
+          {meta.label}
         </span>
         <ChevronDown size={15} color="var(--text-muted)" />
       </button>
@@ -62,44 +63,27 @@ function ProfileMenu() {
             className="absolute right-0 mt-2 w-64 rounded-[var(--radius)] border shadow-[var(--shadow-modal)] z-50 p-2"
             style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
           >
-            {sessions.length === 0 && (
-              <p className="text-xs px-2 py-2" style={{ color: 'var(--text-muted)' }}>
-                Not signed in to any module yet.
-              </p>
-            )}
-            {sessions.map((role) => {
-              const meta = roleMeta[role];
-              return (
-                <div key={role} className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg" style={{ color: 'var(--text-primary)' }}>
-                  <div className="flex items-center gap-2 min-w-0">
-                    <meta.icon size={16} color="var(--brand)" />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{auth[role]?.name || meta.label}</div>
-                      <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                        {meta.label}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => dispatch({ type: 'LOGOUT', payload: { role } })}
-                    aria-label={`Sign out of ${meta.label}`}
-                    className="shrink-0 p-1.5 rounded-lg hover:opacity-70"
-                    style={{ color: 'var(--status-critical)' }}
-                  >
-                    <LogOut size={15} />
-                  </button>
+            <div className="flex items-center gap-2 px-2 py-2" style={{ color: 'var(--text-primary)' }}>
+              <meta.icon size={16} color="var(--brand)" />
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{auth.name}</div>
+                <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  {meta.label}
                 </div>
-              );
-            })}
+              </div>
+            </div>
             <div className="h-px my-1" style={{ background: 'var(--border)' }} />
-            <Link
-              to="/"
-              onClick={() => setOpen(false)}
-              className="block text-sm px-2 py-2 rounded-lg hover:opacity-80"
-              style={{ color: 'var(--brand)' }}
+            <button
+              onClick={() => {
+                setOpen(false);
+                dispatch({ type: 'LOGOUT' });
+              }}
+              className="flex items-center gap-2 w-full text-left text-sm px-2 py-2 rounded-lg hover:opacity-80"
+              style={{ color: 'var(--status-critical)' }}
             >
-              Sign in to another module
-            </Link>
+              <LogOut size={15} />
+              Log out
+            </button>
           </div>
         </>
       )}
@@ -109,6 +93,9 @@ function ProfileMenu() {
 
 export default function Layout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { auth, dispatch } = useStore();
+  const navItems = navForRole(auth?.role);
+  const mobileItems = navItems.slice(0, 4);
 
   return (
     <div className="min-h-svh flex" style={{ background: 'var(--surface-2)' }}>
@@ -133,15 +120,26 @@ export default function Layout() {
             </div>
           </div>
         </Link>
-        {navGroups.map((group) => (
-          <div key={group.label}>
-            <GroupLabel>{group.label}</GroupLabel>
-            {group.items.map((item) => (
-              <NavRow key={item.to} {...item} />
-            ))}
-          </div>
-        ))}
-        <div className="mt-auto pt-4">
+
+        {navItems.length === 0 ? (
+          <p className="text-xs px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+            Sign in to a module to see its screens here.
+          </p>
+        ) : (
+          navItems.map((item) => <NavRow key={item.to} {...item} />)
+        )}
+
+        <div className="mt-auto pt-4 flex flex-col gap-1">
+          {auth && (
+            <button
+              onClick={() => dispatch({ type: 'LOGOUT' })}
+              className="flex items-center gap-2 text-xs w-full text-left px-3 py-2 rounded-lg hover:opacity-80"
+              style={{ color: 'var(--status-critical)' }}
+            >
+              <LogOut size={13} />
+              Log out of {roleMeta[auth.role].label}
+            </button>
+          )}
           <button
             onClick={resetDemo}
             className="text-xs w-full text-left px-3 py-2 rounded-lg hover:opacity-80"
@@ -169,15 +167,36 @@ export default function Layout() {
                 <X size={20} />
               </button>
             </div>
-            <NavRow {...navItems[0]} onClick={() => setDrawerOpen(false)} />
-            {navGroups.map((group) => (
-              <div key={group.label}>
-                <GroupLabel>{group.label}</GroupLabel>
-                {group.items.map((item) => (
-                  <NavRow key={item.to} {...item} onClick={() => setDrawerOpen(false)} />
-                ))}
-              </div>
-            ))}
+            <NavRow to="/" label="Module Access" icon={navItems[0]?.icon ?? Menu} onClick={() => setDrawerOpen(false)} end />
+            {navItems.length === 0 ? (
+              <p className="text-xs px-3 py-2" style={{ color: 'var(--text-muted)' }}>
+                Sign in to a module to see its screens here.
+              </p>
+            ) : (
+              navItems.map((item) => <NavRow key={item.to} {...item} onClick={() => setDrawerOpen(false)} />)
+            )}
+            <div className="mt-auto pt-4 flex flex-col gap-1">
+              {auth && (
+                <button
+                  onClick={() => {
+                    setDrawerOpen(false);
+                    dispatch({ type: 'LOGOUT' });
+                  }}
+                  className="flex items-center gap-2 text-xs w-full text-left px-3 py-2 rounded-lg hover:opacity-80"
+                  style={{ color: 'var(--status-critical)' }}
+                >
+                  <LogOut size={13} />
+                  Log out of {roleMeta[auth.role].label}
+                </button>
+              )}
+              <button
+                onClick={resetDemo}
+                className="text-xs w-full text-left px-3 py-2 rounded-lg hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Reset demo data
+              </button>
+            </div>
           </nav>
         </div>
       )}
@@ -204,9 +223,6 @@ export default function Layout() {
               <Wifi size={15} />
               Online
             </div>
-            <Link to="/admin" className="hidden sm:block p-1.5 rounded-lg hover:opacity-70" style={{ color: 'var(--text-muted)' }} aria-label="Admin settings">
-              <Settings size={18} />
-            </Link>
             <ProfileMenu />
           </div>
         </header>
@@ -220,19 +236,18 @@ export default function Layout() {
           className="md:hidden fixed bottom-0 left-0 right-0 border-t flex z-30"
           style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
         >
-          {navItems
-            .filter((n) => mobilePrimaryNav.includes(n.to as (typeof mobilePrimaryNav)[number]))
-            .map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
-                style={({ isActive }) => ({ color: isActive ? 'var(--brand)' : 'var(--text-muted)' })}
-              >
-                <item.icon size={19} />
-                {item.label.split(' ')[0]}
-              </NavLink>
-            ))}
+          {mobileItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+              style={({ isActive }) => ({ color: isActive ? 'var(--brand)' : 'var(--text-muted)' })}
+            >
+              <item.icon size={19} />
+              {item.label.split(' ')[0]}
+            </NavLink>
+          ))}
           <button
             onClick={() => setDrawerOpen(true)}
             className="flex-1 flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"

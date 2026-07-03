@@ -10,8 +10,9 @@ import GuardBillScan from './pages/GuardBillScan';
 import GuardEntries from './pages/GuardEntries';
 import VendorPortal from './pages/VendorPortal';
 import ValidationIssues from './pages/ValidationIssues';
-import StoreManager from './pages/StoreManager';
+import UnloadingDesk from './pages/UnloadingDesk';
 import QcModule from './pages/QcModule';
+import GrnCheck from './pages/GrnCheck';
 import FinanceModule from './pages/FinanceModule';
 import AdminModule from './pages/AdminModule';
 
@@ -23,7 +24,14 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<ModuleLogin />} />
             <Route path="/login/:role" element={<RoleLogin />} />
-            <Route path="/command-center" element={<CommandCenter />} />
+            <Route
+              path="/command-center"
+              element={
+                <RequireRole role="admin">
+                  <CommandCenter />
+                </RequireRole>
+              }
+            />
             <Route
               path="/guard"
               element={
@@ -57,18 +65,10 @@ export default function App() {
               }
             />
             <Route
-              path="/validation"
+              path="/unloading"
               element={
-                <RequireRole role="store">
-                  <ValidationIssues />
-                </RequireRole>
-              }
-            />
-            <Route
-              path="/store"
-              element={
-                <RequireRole role="store">
-                  <StoreManager />
+                <RequireRole role="storeExec">
+                  <UnloadingDesk />
                 </RequireRole>
               }
             />
@@ -77,6 +77,22 @@ export default function App() {
               element={
                 <RequireRole role="qc">
                   <QcModule />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/grn"
+              element={
+                <RequireRole role="storeManager">
+                  <GrnCheck />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/validation"
+              element={
+                <RequireRole role="storeManager">
+                  <ValidationIssues />
                 </RequireRole>
               }
             />

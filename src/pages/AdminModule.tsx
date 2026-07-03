@@ -14,8 +14,8 @@ const roles = [
 ];
 
 const checklist: [string, string[]][] = [
-  ['Critical', ['Guard Portal — done', 'Vendor Portal — done', 'Unloading Desk — done', 'Finance Review — done']],
-  ['High', ['Validation Issues — done', 'GPS — done', 'Product line / SKU mapping — done', 'Camera / PWA capture — mocked, needs real device camera', 'GST verification — done (offline PO master check, not a live government API)', 'Email alerts — needs SMTP backend']],
+  ['Critical', ['Guard Portal — done', 'Vendor Portal — done', 'Unloading Desk — done', 'Finance Review — done', 'Modules kept fully separate (no merged screens) — done', 'One portal open at a time, logout required to switch — done']],
+  ['High', ['Validation Issues — done', 'GPS — done', 'Product line / SKU mapping — done', 'QC Check and GRN Check as two separate steps — done', 'Camera / PWA capture — mocked, needs real device camera', 'GST verification — done (offline PO master check, not a live government API)', 'Email alerts — needs SMTP backend']],
   ['Medium', ['Put-away execution — done', 'Audit trail — done', 'Settings — done', 'Reports — not built', 'CSV cleanup — not applicable yet (no CSV import)', 'GST status consistency — done']],
   ['Low', ['Advanced analytics — not built', 'Vendor rating — not built', 'Zoho live sync — mocked, needs real API + backend', 'OCR provider selection — not applicable (no OCR yet)', 'Mobile polish — done, verified at 390px']],
 ];

@@ -6,49 +6,49 @@ import { gateEntryLabel } from '../lib/derived';
 import type { GateEntry } from '../lib/types';
 
 export default function QcModule() {
-  const { gateEntries, grnRecords } = useStore();
+  const { gateEntries, qcResults } = useStore();
   const pending = gateEntries.filter((g) => g.status === 'grn');
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader title="QC Module" subtitle="Accept / hold / defective / reject split with reasons, then post to stock." />
+      <PageHeader title="QC Check" subtitle="Accept / hold / defective / reject split with reasons, then send to GRN Check." />
 
       <div className="flex flex-col gap-4">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Awaiting QC / GRN
+          Awaiting QC Check
         </h2>
-        {pending.length === 0 && <EmptyState text="Nothing waiting — complete unloading in Store Manager first." />}
+        {pending.length === 0 && <EmptyState text="Nothing waiting — complete unloading at the Unloading Desk first." />}
         {pending.map((g) => (
           <QcForm key={g.id} gate={g} label={gateEntryLabel(g)} />
         ))}
       </div>
 
-      {grnRecords.length > 0 && (
+      {qcResults.length > 0 && (
         <>
           <h2 className="text-sm font-semibold mt-8 mb-3" style={{ color: 'var(--text-primary)' }}>
-            Posted GRN / QC records
+            Completed QC checks
           </h2>
           <div className="flex flex-col gap-3">
-            {grnRecords.map((grn) => (
-              <Card key={grn.gateEntryId} className="p-4">
+            {qcResults.map((r) => (
+              <Card key={r.gateEntryId} className="p-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {grn.sku}
+                    {r.sku}
                   </span>
                   <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Bin {grn.suggestedBin}
+                    Sent to GRN Check
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3 text-center">
-                  <Metric label="Invoice" value={grn.invoiceQty} />
-                  <Metric label="Accepted" value={grn.split.accepted} tone="var(--status-good)" />
-                  <Metric label="QC Hold" value={grn.split.qcHold} tone="var(--status-warning)" />
-                  <Metric label="Defective" value={grn.split.defective} tone="var(--status-serious)" />
-                  <Metric label="Missing" value={grn.missing} tone="var(--status-critical)" />
+                  <Metric label="Invoice" value={r.invoiceQty} />
+                  <Metric label="Accepted" value={r.split.accepted} tone="var(--status-good)" />
+                  <Metric label="QC Hold" value={r.split.qcHold} tone="var(--status-warning)" />
+                  <Metric label="Defective" value={r.split.defective} tone="var(--status-serious)" />
+                  <Metric label="Missing" value={r.missing} tone="var(--status-critical)" />
                 </div>
-                {grn.qcReasons && (
+                {r.qcReasons && (
                   <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-                    {grn.qcReasons}
+                    {r.qcReasons}
                   </p>
                 )}
               </Card>
@@ -85,7 +85,6 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
   const [rejected, setRejected] = useState('');
   const [reasonCode, setReasonCode] = useState('');
   const [qcReasons, setQcReasons] = useState('');
-  const [suggestedBin, setSuggestedBin] = useState('');
 
   const a = Number(accepted) || 0;
   const h = Number(qcHold) || 0;
@@ -100,7 +99,7 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
   function submit() {
     const reasons = [reasonCode, qcReasons].filter(Boolean).join(' — ');
     dispatch({
-      type: 'SAVE_GRN',
+      type: 'SAVE_QC_RESULT',
       payload: {
         gateEntryId: gate.id,
         sku: material,
@@ -108,7 +107,6 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
         invoiceQty,
         split: { accepted: a, qcHold: h, defective: d, rejected: r },
         qcReasons: reasons || undefined,
-        suggestedBin: suggestedBin || 'UNBINNED',
       },
     });
   }
@@ -127,7 +125,7 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
       {docMissing && (
         <div className="flex items-center gap-2 text-xs rounded-[var(--radius)] px-3 py-2 mb-3" style={{ background: 'var(--status-critical-bg)', color: 'var(--status-critical)' }}>
           <AlertTriangle size={14} />
-          Bill/document scan was never confirmed at the gate — posting is blocked until that's resolved.
+          Bill/document scan was never confirmed at the gate — this can't be sent to GRN Check until that's resolved.
         </div>
       )}
 
@@ -158,21 +156,16 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
         </p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-        <Field label="Suggested bin">
-          <Input value={suggestedBin} onChange={(e) => setSuggestedBin(e.target.value)} placeholder="BHW-CHEM-A1" />
-        </Field>
-        <Field label="Reason code" hint={needsReason ? 'Required — defective or rejected qty entered' : undefined}>
-          <Select value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
-            <option value="">Select reason…</option>
-            {reasonCodes.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </div>
+      <Field label="Reason code" hint={needsReason ? 'Required — defective or rejected qty entered' : undefined}>
+        <Select value={reasonCode} onChange={(e) => setReasonCode(e.target.value)} className="mt-3">
+          <option value="">Select reason…</option>
+          {reasonCodes.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </Select>
+      </Field>
       <Field label="Reason details">
         <Textarea rows={1} value={qcReasons} onChange={(e) => setQcReasons(e.target.value)} placeholder="Optional detail — e.g. minor bag damage on 1 pallet" className="mt-3" />
       </Field>
@@ -182,7 +175,7 @@ function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
         onClick={submit}
         disabled={physicalReceived === 0 || overReceived || docMissing || (needsReason && !reasonCode)}
       >
-        Post GRN &amp; update stock
+        Send to GRN Check
       </Button>
     </Card>
   );

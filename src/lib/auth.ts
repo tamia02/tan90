@@ -2,13 +2,18 @@ import {
   ShieldCheck,
   Truck,
   Warehouse,
-  Store,
+  PackageSearch,
+  ClipboardCheck,
   Wallet,
   Settings,
   type LucideIcon,
 } from 'lucide-react';
 
-export type Role = 'guard' | 'vendor' | 'store' | 'qc' | 'finance' | 'admin';
+// Seven roles, kept fully separate per the client — nothing here merges.
+// Guard, Vendor, Store Executive, QC, Store Manager, Finance, Admin each get
+// their own login and their own screens; Admin is the only one that can see
+// everything else.
+export type Role = 'guard' | 'vendor' | 'storeExec' | 'qc' | 'storeManager' | 'finance' | 'admin';
 
 export interface RoleMeta {
   role: Role;
@@ -51,31 +56,44 @@ export const roleMeta: Record<Role, RoleMeta> = {
     demoName: 'Hindustan Chemical Corp',
     demoId: 'GSTIN-HCC01',
   },
-  store: {
-    role: 'store',
-    label: 'Store Manager',
-    moduleName: 'Store Manager Module',
-    features: ['Unloading desk', 'GRN register', 'Stock posting', 'Bin readiness'],
-    loginTitle: 'Store Manager Login',
+  storeExec: {
+    role: 'storeExec',
+    label: 'Store Executive',
+    moduleName: 'Unloading Desk Module',
+    features: ['Unloading queue', 'Box count', 'POD/LR capture', 'Seal / load proof'],
+    loginTitle: 'Store Executive Login',
     idLabel: 'Employee ID',
-    idPlaceholder: 'EMP-2201',
+    idPlaceholder: 'EMP-1108',
     icon: Warehouse,
-    homePath: '/store',
-    demoName: 'Priya Deshmukh',
-    demoId: 'EMP-2201',
+    homePath: '/unloading',
+    demoName: 'Vikram Rao',
+    demoId: 'EMP-1108',
   },
   qc: {
     role: 'qc',
     label: 'QC User',
-    moduleName: 'QC Inspection Module',
-    features: ['QC queue', 'Hold split', 'Defect reason', 'Inspection posting'],
+    moduleName: 'QC Check Module',
+    features: ['QC queue', 'Accept / hold / defective / reject split', 'Reason codes', 'Send to GRN Check'],
     loginTitle: 'QC User Login',
     idLabel: 'Employee ID',
     idPlaceholder: 'EMP-3105',
-    icon: Store,
+    icon: PackageSearch,
     homePath: '/qc',
     demoName: 'Arjun Mehta',
     demoId: 'EMP-3105',
+  },
+  storeManager: {
+    role: 'storeManager',
+    label: 'Store Manager',
+    moduleName: 'GRN Check & Stock Module',
+    features: ['GRN Check / posting', 'Put-away', 'Immutable ledger', 'Validation issue oversight'],
+    loginTitle: 'Store Manager Login',
+    idLabel: 'Employee ID',
+    idPlaceholder: 'EMP-2201',
+    icon: ClipboardCheck,
+    homePath: '/grn',
+    demoName: 'Priya Deshmukh',
+    demoId: 'EMP-2201',
   },
   finance: {
     role: 'finance',
@@ -105,10 +123,14 @@ export const roleMeta: Record<Role, RoleMeta> = {
   },
 };
 
-// Which pages a role may open in addition to its own — admin sees everything,
-// store also owns validation triage (matches the doc's role table).
-export function roleCanAccess(sessions: Partial<Record<Role, unknown>>, required: Role): boolean {
-  if (sessions.admin) return true;
-  if (required === 'store' && sessions.store) return true;
-  return Boolean(sessions[required]);
+export const roleOrder: Role[] = ['guard', 'vendor', 'storeExec', 'qc', 'storeManager', 'finance', 'admin'];
+
+// Admin is the only role that can see into another module. Every other role
+// is walled off — no shared access, no exceptions. Combined with a
+// single-active-session store (see store.tsx), this is what makes "you can't
+// move from one portal to another without logging out" actually true.
+export function roleCanAccess(session: { role: Role } | null, required: Role): boolean {
+  if (!session) return false;
+  if (session.role === 'admin') return true;
+  return session.role === required;
 }

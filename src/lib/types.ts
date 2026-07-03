@@ -7,7 +7,8 @@ export type GateEntryStatus =
   | 'pending_validation'
   | 'validated'
   | 'unloading'
-  | 'grn'
+  | 'grn' // unloaded, waiting for QC Check
+  | 'qc_done' // QC Check complete, waiting for GRN Check (posting) by Store Manager
   | 'posted'
   | 'closed';
 
@@ -77,6 +78,21 @@ export interface QcSplit {
   qcHold: number;
   defective: number;
   rejected: number;
+}
+
+// Produced by QC Check (role: qc) — the accept/hold/defective/rejected split
+// with reasons. Does not touch stock; GRN Check (role: storeManager) reads
+// this and is the only thing that posts to the ledger.
+export interface QcResult {
+  gateEntryId: string;
+  sku: string;
+  poQty: number;
+  invoiceQty: number;
+  physicalReceived: number;
+  split: QcSplit;
+  missing: number;
+  qcReasons?: string;
+  createdAt: string;
 }
 
 export interface GrnRecord {
