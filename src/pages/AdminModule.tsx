@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Link2, Loader2, RefreshCw, Unlink } from 'lucide-react';
-import { Button, Card, Field, Input, PageHeader } from '../components/ui';
+import { History, Link2, Loader2, RefreshCw, Unlink } from 'lucide-react';
+import { Button, Card, EmptyState, Field, Input, PageHeader } from '../components/ui';
 import { resetDemo, useStore } from '../lib/store';
 
 const roles = [
@@ -14,10 +14,10 @@ const roles = [
 ];
 
 const checklist: [string, string[]][] = [
-  ['Critical', ['Guard Portal', 'Vendor Portal', 'Unloading Desk', 'Finance Review']],
-  ['High', ['Validation Issues', 'Camera / PWA capture', 'GPS', 'Product line editing', 'GST verification', 'Email alerts']],
-  ['Medium', ['Put-away execution', 'Reports', 'Audit trail', 'Settings', 'CSV cleanup', 'GST status consistency']],
-  ['Low', ['Advanced analytics', 'Vendor rating', 'Zoho live sync (real API + backend)', 'OCR provider selection', 'Mobile polish']],
+  ['Critical', ['Guard Portal — done', 'Vendor Portal — done', 'Unloading Desk — done', 'Finance Review — done']],
+  ['High', ['Validation Issues — done', 'GPS — done', 'Product line / SKU mapping — done', 'Camera / PWA capture — mocked, needs real device camera', 'GST verification — done (offline PO master check, not a live government API)', 'Email alerts — needs SMTP backend']],
+  ['Medium', ['Put-away execution — done', 'Audit trail — done', 'Settings — done', 'Reports — not built', 'CSV cleanup — not applicable yet (no CSV import)', 'GST status consistency — done']],
+  ['Low', ['Advanced analytics — not built', 'Vendor rating — not built', 'Zoho live sync — mocked, needs real API + backend', 'OCR provider selection — not applicable (no OCR yet)', 'Mobile polish — done, verified at 390px']],
 ];
 
 const priorityTone: Record<string, string> = {
@@ -87,6 +87,11 @@ export default function AdminModule() {
         Zoho Integration
       </h2>
       <ZohoIntegrationPanel />
+
+      <h2 className="text-sm font-semibold mb-3 mt-8" style={{ color: 'var(--text-primary)' }}>
+        Immutable Audit Trail
+      </h2>
+      <AuditLogPanel />
 
       <h2 className="text-sm font-semibold mb-3 mt-8" style={{ color: 'var(--text-primary)' }}>
         Other Integrations
@@ -176,7 +181,14 @@ function ZohoIntegrationPanel() {
             {busy === 'sync' ? <Loader2 size={15} className="animate-spin" /> : <RefreshCw size={15} />}
             Sync now
           </Button>
-          <Button variant="danger" onClick={() => dispatch({ type: 'ZOHO_DISCONNECT' })}>
+          <Button
+            variant="danger"
+            onClick={() => {
+              if (window.confirm(`Disconnect ${zoho.orgName}? Vendors lose "Fetch from Zoho" auto-fill until this is reconnected.`)) {
+                dispatch({ type: 'ZOHO_DISCONNECT' });
+              }
+            }}
+          >
             <Unlink size={15} />
             Disconnect
           </Button>
@@ -213,6 +225,49 @@ function ZohoIntegrationPanel() {
         Vendors can now use "Fetch from Zoho" on the Invoice step of a new submission to auto-fill invoice number,
         date, quantity and e-way bill number for a known PO.
       </p>
+    </Card>
+  );
+}
+
+function AuditLogPanel() {
+  const { auditLog } = useStore();
+
+  return (
+    <Card className="p-0 overflow-hidden">
+      {auditLog.length === 0 ? (
+        <EmptyState text="No actions logged yet — every gate entry, issue decision, GRN post and login will appear here." />
+      ) : (
+        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                <th className="px-4 py-2.5 font-medium sticky top-0" style={{ background: 'var(--surface-3)' }}>Timestamp</th>
+                <th className="px-4 py-2.5 font-medium sticky top-0" style={{ background: 'var(--surface-3)' }}>Action</th>
+                <th className="px-4 py-2.5 font-medium sticky top-0" style={{ background: 'var(--surface-3)' }}>Detail</th>
+              </tr>
+            </thead>
+            <tbody>
+              {auditLog.map((entry) => (
+                <tr key={entry.id} style={{ borderTop: '1px solid var(--border)' }}>
+                  <td className="px-4 py-2 text-xs whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                    {new Date(entry.timestamp).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-2 font-medium whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+                    {entry.action}
+                  </td>
+                  <td className="px-4 py-2" style={{ color: 'var(--text-secondary)' }}>
+                    {entry.detail}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="px-4 py-2.5 text-xs border-t flex items-center gap-1.5" style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}>
+        <History size={12} />
+        Append-only — every login, gate entry, issue decision, unloading, GRN post and Zoho action is logged automatically. Nothing here can be edited or deleted.
+      </div>
     </Card>
   );
 }

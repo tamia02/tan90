@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, CheckCircle2, MapPin, Timer } from 'lucide-react';
 import { useStore } from '../lib/store';
+import GuardSubNav from '../components/GuardSubNav';
 import { Button, Card, CheckboxRow, Field, Input, PageHeader, Select, Textarea } from '../components/ui';
 import type { EntryType, GateEntry, ValidationIssue } from '../lib/types';
+import { findPoMaster, isSkuMapped } from '../lib/poMaster';
 
 const entryTypes: { value: EntryType; label: string }[] = [
   { value: 'inward', label: 'Inward' },
@@ -16,8 +18,8 @@ function nextGateId() {
   return `GE-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-export default function GuardPortal() {
-  const { gateEntries, dispatch } = useStore();
+export default function GuardBillScan() {
+  const { gateEntries, vendorSubmissions, dispatch } = useStore();
   const navigate = useNavigate();
   const [entryType, setEntryType] = useState<EntryType>('inward');
   const [billScanned, setBillScanned] = useState(false);
@@ -27,8 +29,10 @@ export default function GuardPortal() {
   const [form, setForm] = useState({
     poNumber: '',
     vendorName: '',
+    vendorGst: '',
     invoiceNumber: '',
     invoiceQty: '',
+    rate: '',
     material: '',
     vehicleNumber: '',
     driverName: '',
@@ -57,8 +61,10 @@ export default function GuardPortal() {
       entryType,
       poNumber: form.poNumber || undefined,
       vendorName: form.vendorName || undefined,
+      vendorGst: form.vendorGst || undefined,
       invoiceNumber: form.invoiceNumber || undefined,
       invoiceQty: form.invoiceQty ? Number(form.invoiceQty) : undefined,
+      rate: form.rate ? Number(form.rate) : undefined,
       material: form.material || undefined,
       vehicleNumber: form.vehicleNumber,
       driverName: form.driverName,
@@ -73,43 +79,65 @@ export default function GuardPortal() {
     };
 
     const issues: ValidationIssue[] = [];
+    function raise(code: string, title: string, description: string, severity: ValidationIssue['severity']) {
+      issues.push({
+        id: `VI-${Math.floor(Math.random() * 90000)}`,
+        gateEntryId: id,
+        code,
+        title,
+        description,
+        severity,
+        status: 'open',
+        raisedAt: createdAt.toISOString(),
+      });
+    }
+
     if (entryType === 'inward') {
+      const master = form.poNumber ? findPoMaster(form.poNumber) : undefined;
+
       if (!form.poNumber) {
-        issues.push({
-          id: `VI-${Math.floor(Math.random() * 9000)}`,
-          gateEntryId: id,
-          code: 'PO_MISSING',
-          title: 'PO Missing',
-          description: 'PO number not found for this inward entry',
-          severity: 'hardFail',
-          status: 'open',
-          raisedAt: createdAt.toISOString(),
-        });
+        raise('PO_MISSING', 'PO Missing', 'PO number not found for this inward entry', 'hardFail');
       }
+
       const duplicateInvoice = form.invoiceNumber && gateEntries.some((g) => g.invoiceNumber?.toLowerCase() === form.invoiceNumber.toLowerCase());
       if (duplicateInvoice) {
-        issues.push({
-          id: `VI-${Math.floor(Math.random() * 9000)}`,
-          gateEntryId: id,
-          code: 'DUP_INVOICE',
-          title: 'Duplicate Invoice',
-          description: 'Possible duplicate invoice detected',
-          severity: 'hardFail',
-          status: 'open',
-          raisedAt: createdAt.toISOString(),
-        });
+        raise('DUP_INVOICE', 'Duplicate Invoice', 'Possible duplicate invoice detected', 'hardFail');
       }
+
+      const duplicateVehicle = gateEntries.some((g) => g.status !== 'closed' && g.vehicleNumber.toLowerCase() === form.vehicleNumber.toLowerCase());
+      if (duplicateVehicle) {
+        raise('DUP_VEHICLE', 'Duplicate Vehicle', 'This vehicle already has an open, unclosed gate entry', 'warning');
+      }
+
+      if (!form.material) {
+        raise('PRODUCT_LINE_MISSING', 'Product Line Missing', 'No material/SKU line entered for this inward entry', 'hardFail');
+      } else if (!isSkuMapped(form.material)) {
+        raise('SKU_NOT_MAPPED', 'SKU Not Mapped', `"${form.material}" is not in the mapped SKU master — map it before GRN`, 'hardFail');
+      }
+
+      if (form.poNumber && !master) {
+        raise('PO_NOT_FOUND', 'PO Not Found', `${form.poNumber} was not found in PO master data`, 'hardFail');
+      }
+
+      if (master && form.rate && Number(form.rate) !== master.expectedRate) {
+        raise('RATE_MISMATCH', 'Rate Mismatch', `Entered rate ₹${form.rate}/unit does not match PO rate ₹${master.expectedRate}/unit`, 'redFlag');
+      }
+
+      if (master && form.invoiceQty && Number(form.invoiceQty) !== master.expectedQty) {
+        raise('QTY_MISMATCH', 'Quantity Mismatch', `Invoice qty ${form.invoiceQty} does not match PO qty ${master.expectedQty}`, 'redFlag');
+      }
+
+      if (master && form.vendorGst && form.vendorGst.trim().toUpperCase() !== master.vendorGst.toUpperCase()) {
+        raise('GST_MISMATCH', 'GST Mismatch', `Entered GST does not match the GST on file for ${master.vendorName}`, 'redFlag');
+      }
+
+      const vendorHasLrPod = form.poNumber && vendorSubmissions.some((v) => v.poNumber.toLowerCase() === form.poNumber.toLowerCase() && v.hasLrPod);
+      if (form.poNumber && !vendorHasLrPod) {
+        raise('POD_LR_EARLY', 'POD/LR Missing At Gate', 'Vendor has not pre-uploaded LR/POD for this PO — confirm at unloading', 'redFlag');
+      }
+
       if (!gps) {
-        issues.push({
-          id: `VI-${Math.floor(Math.random() * 9000)}`,
-          gateEntryId: id,
-          code: 'GPS_MISSING',
-          title: 'GPS Missing',
-          description: 'Gate entry saved without GPS location',
-          severity: 'warning',
-          status: 'open',
-          raisedAt: createdAt.toISOString(),
-        });
+        raise('GPS_MISSING', 'GPS Missing', 'Gate entry saved without GPS location', 'warning');
       }
     }
 
@@ -147,8 +175,11 @@ export default function GuardPortal() {
             <Button variant="secondary" className="flex-1" onClick={() => setSaved(null)}>
               New gate entry
             </Button>
+            <Button variant="secondary" className="flex-1" onClick={() => navigate('/guard/entries')}>
+              Guard Entries
+            </Button>
             <Button className="flex-1" onClick={() => navigate('/validation')}>
-              View Validation Engine
+              Validation Engine
             </Button>
           </div>
         </Card>
@@ -158,7 +189,8 @@ export default function GuardPortal() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <PageHeader title="Guard Portal" subtitle="Scan bill, capture vehicle, driver and GPS. Saving starts the 12-hour GRN SLA timer." />
+      <PageHeader title="Bill Scan" subtitle="Scan bill, capture vehicle, driver and GPS. Saving starts the 12-hour GRN SLA timer." />
+      <GuardSubNav />
 
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
         {entryTypes.map((t) => (
@@ -206,6 +238,12 @@ export default function GuardPortal() {
                 </Field>
                 <Field label="Invoice Qty">
                   <Input type="number" value={form.invoiceQty} onChange={(e) => update('invoiceQty', e.target.value)} placeholder="700" />
+                </Field>
+                <Field label="Rate (₹ / unit)">
+                  <Input type="number" value={form.rate} onChange={(e) => update('rate', e.target.value)} placeholder="42" />
+                </Field>
+                <Field label="Vendor GST">
+                  <Input value={form.vendorGst} onChange={(e) => update('vendorGst', e.target.value)} placeholder="27AACCH1234K1Z5" />
                 </Field>
                 <Field label="Material / SKU">
                   <Input value={form.material} onChange={(e) => update('material', e.target.value)} placeholder="Sodium Fluoride" />

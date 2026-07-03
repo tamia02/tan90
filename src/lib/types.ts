@@ -32,8 +32,10 @@ export interface GateEntry {
   entryType: EntryType;
   poNumber?: string;
   vendorName?: string;
+  vendorGst?: string;
   invoiceNumber?: string;
   invoiceQty?: number;
+  rate?: number;
   material?: string;
   vehicleNumber: string;
   driverName: string;

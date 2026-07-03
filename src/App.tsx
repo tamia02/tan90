@@ -5,7 +5,9 @@ import { StoreProvider } from './lib/store';
 import ModuleLogin from './pages/ModuleLogin';
 import RoleLogin from './pages/RoleLogin';
 import CommandCenter from './pages/CommandCenter';
-import GuardPortal from './pages/GuardPortal';
+import GuardDashboard from './pages/GuardDashboard';
+import GuardBillScan from './pages/GuardBillScan';
+import GuardEntries from './pages/GuardEntries';
 import VendorPortal from './pages/VendorPortal';
 import ValidationIssues from './pages/ValidationIssues';
 import StoreManager from './pages/StoreManager';
@@ -26,7 +28,23 @@ export default function App() {
               path="/guard"
               element={
                 <RequireRole role="guard">
-                  <GuardPortal />
+                  <GuardDashboard />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/guard/scan"
+              element={
+                <RequireRole role="guard">
+                  <GuardBillScan />
+                </RequireRole>
+              }
+            />
+            <Route
+              path="/guard/entries"
+              element={
+                <RequireRole role="guard">
+                  <GuardEntries />
                 </RequireRole>
               }
             />

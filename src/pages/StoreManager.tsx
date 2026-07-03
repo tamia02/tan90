@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useStore } from '../lib/store';
-import { Button, Card, EmptyState, Field, Input, PageHeader } from '../components/ui';
+import { Button, Card, CheckboxRow, EmptyState, Field, Input, PageHeader } from '../components/ui';
 import { GateStatusBadge } from '../components/Badge';
 import { gateEntryLabel } from '../lib/derived';
-import { Boxes, PackageCheck } from 'lucide-react';
+import { Boxes, Camera, CheckCircle2, ChevronDown, ChevronUp, PackageCheck } from 'lucide-react';
 import type { LedgerBucket } from '../lib/types';
 
 const bucketLabel: Record<LedgerBucket, string> = {
@@ -21,8 +21,9 @@ const bucketTone: Record<LedgerBucket, string> = {
 };
 
 export default function StoreManager() {
-  const { gateEntries, unloadingRecords, grnRecords, ledger } = useStore();
+  const { gateEntries, unloadingRecords, grnRecords, finance, ledger } = useStore();
   const [tab, setTab] = useState<'unloading' | 'putaway' | 'ledger'>('unloading');
+  const [expandedLedgerId, setExpandedLedgerId] = useState<string | null>(null);
 
   const readyForUnloading = gateEntries.filter((g) => g.status === 'validated');
   const inUnloading = gateEntries.filter((g) => g.status === 'unloading' || g.status === 'grn');
@@ -125,23 +126,69 @@ export default function StoreManager() {
                     <th className="px-4 py-2.5 font-medium">SKU / Bin</th>
                     <th className="px-4 py-2.5 font-medium">Bucket</th>
                     <th className="px-4 py-2.5 font-medium">Qty</th>
+                    <th className="px-4 py-2.5 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ledger.map((l) => (
-                    <tr key={l.id} style={{ borderTop: '1px solid var(--border)' }}>
-                      <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {new Date(l.timestamp).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {l.sku} / {l.bin}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium" style={{ color: bucketTone[l.bucket] }}>
-                        {bucketLabel[l.bucket]}
-                      </td>
-                      <td className="px-4 py-2.5 tabular-nums">{l.qty}</td>
-                    </tr>
-                  ))}
+                  {ledger.map((l) => {
+                    const expanded = expandedLedgerId === l.id;
+                    const gate = gateEntries.find((g) => g.id === l.gateEntryId);
+                    const grn = grnRecords.find((g) => g.gateEntryId === l.gateEntryId);
+                    const financeRecord = finance.find((f) => f.gateEntryId === l.gateEntryId);
+                    return (
+                      <Fragment key={l.id}>
+                        <tr
+                          onClick={() => setExpandedLedgerId(expanded ? null : l.id)}
+                          className="cursor-pointer"
+                          style={{ borderTop: '1px solid var(--border)' }}
+                        >
+                          <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                            {new Date(l.timestamp).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {l.sku} / {l.bin}
+                          </td>
+                          <td className="px-4 py-2.5 font-medium" style={{ color: bucketTone[l.bucket] }}>
+                            {bucketLabel[l.bucket]}
+                          </td>
+                          <td className="px-4 py-2.5 tabular-nums">{l.qty}</td>
+                          <td className="px-4 py-2.5 text-right" style={{ color: 'var(--text-muted)' }}>
+                            {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr style={{ borderTop: '1px solid var(--border)' }}>
+                            <td colSpan={5} className="px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                                <div>
+                                  <div className="uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Gate Entry</div>
+                                  <div style={{ color: 'var(--text-primary)' }}>
+                                    {gate ? `${gate.gateNo} · ${gate.vendorName ?? gate.vehicleNumber}` : '—'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>GRN</div>
+                                  <div style={{ color: 'var(--text-primary)' }}>
+                                    {grn ? `Accepted ${grn.split.accepted} · Defective ${grn.split.defective} · Missing ${grn.missing}` : '—'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Finance</div>
+                                  <div style={{ color: 'var(--text-primary)' }}>
+                                    {financeRecord ? `${financeRecord.vendorStatus} · Payable ₹${financeRecord.finalPayable.toLocaleString('en-IN')}` : 'Not yet posted'}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className="uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Ledger Entry</div>
+                                  <div style={{ color: 'var(--text-primary)' }}>{l.id}</div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -162,6 +209,7 @@ function UnloadingCard({ gateId, label }: { gateId: string; label: string }) {
   const [stagingArea, setStagingArea] = useState('');
   const [unloadedBy, setUnloadedBy] = useState('');
   const [podLrRef, setPodLrRef] = useState('');
+  const [proofCaptured, setProofCaptured] = useState(false);
 
   function complete() {
     const startedAt = new Date().toISOString();
@@ -197,10 +245,29 @@ function UnloadingCard({ gateId, label }: { gateId: string; label: string }) {
           <Field label="POD / LR reference">
             <Input value={podLrRef} onChange={(e) => setPodLrRef(e.target.value)} placeholder="LR-88213" required />
           </Field>
+
+          <button
+            type="button"
+            onClick={() => setProofCaptured(true)}
+            className="sm:col-span-2 flex items-center justify-center gap-2 rounded-[var(--radius)] border-2 border-dashed py-4 text-sm font-medium"
+            style={{
+              borderColor: proofCaptured ? 'var(--status-good)' : 'var(--border-strong)',
+              color: proofCaptured ? 'var(--status-good)' : 'var(--text-muted)',
+            }}
+          >
+            {proofCaptured ? <CheckCircle2 size={16} /> : <Camera size={16} />}
+            {proofCaptured ? 'Seal / load proof captured' : 'Capture seal / load stamp proof'}
+          </button>
+          <div className="sm:col-span-2">
+            <CheckboxRow checked={proofCaptured} onChange={(e) => setProofCaptured(e.target.checked)}>
+              Stamped proof confirmed for this unloading
+            </CheckboxRow>
+          </div>
+
           <Button
             className="sm:col-span-2"
             onClick={complete}
-            disabled={!boxCount || !stagingArea || !unloadedBy || !podLrRef}
+            disabled={!boxCount || !stagingArea || !unloadedBy || !podLrRef || !proofCaptured}
           >
             Save &amp; send to GRN / QC
           </Button>

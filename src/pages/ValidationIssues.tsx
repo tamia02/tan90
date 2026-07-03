@@ -177,7 +177,12 @@ function IssueCard({
         <Button variant="secondary" onClick={() => act('resolved')} disabled={!owner}>
           Resolve
         </Button>
-        <Button variant="danger" onClick={() => act('escalated')}>
+        <Button
+          variant="danger"
+          onClick={() => {
+            if (window.confirm(`Escalate "${issue.title}"? This notifies Admin/Auditor and can't be quietly undone.`)) act('escalated');
+          }}
+        >
           Escalate
         </Button>
       </div>

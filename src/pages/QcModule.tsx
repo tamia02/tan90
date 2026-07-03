@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useStore } from '../lib/store';
-import { Button, Card, EmptyState, Field, Input, PageHeader, Textarea } from '../components/ui';
+import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Textarea } from '../components/ui';
 import { gateEntryLabel } from '../lib/derived';
+import type { GateEntry } from '../lib/types';
 
 export default function QcModule() {
   const { gateEntries, grnRecords } = useStore();
@@ -17,7 +19,7 @@ export default function QcModule() {
         </h2>
         {pending.length === 0 && <EmptyState text="Nothing waiting — complete unloading in Store Manager first." />}
         {pending.map((g) => (
-          <QcForm key={g.id} gateId={g.id} label={gateEntryLabel(g)} invoiceQty={g.invoiceQty ?? 0} material={g.material ?? 'SKU'} />
+          <QcForm key={g.id} gate={g} label={gateEntryLabel(g)} />
         ))}
       </div>
 
@@ -71,12 +73,17 @@ function Metric({ label, value, tone }: { label: string; value: number; tone?: s
   );
 }
 
-function QcForm({ gateId, label, invoiceQty, material }: { gateId: string; label: string; invoiceQty: number; material: string }) {
+const reasonCodes = ['Damage', 'Leakage', 'Wrong item', 'Document mismatch', 'Other'];
+
+function QcForm({ gate, label }: { gate: GateEntry; label: string }) {
   const { dispatch } = useStore();
+  const invoiceQty = gate.invoiceQty ?? 0;
+  const material = gate.material ?? 'SKU';
   const [accepted, setAccepted] = useState('');
   const [qcHold, setQcHold] = useState('');
   const [defective, setDefective] = useState('');
   const [rejected, setRejected] = useState('');
+  const [reasonCode, setReasonCode] = useState('');
   const [qcReasons, setQcReasons] = useState('');
   const [suggestedBin, setSuggestedBin] = useState('');
 
@@ -87,17 +94,20 @@ function QcForm({ gateId, label, invoiceQty, material }: { gateId: string; label
   const physicalReceived = a + h + d + r;
   const missing = Math.max(invoiceQty - physicalReceived, 0);
   const overReceived = physicalReceived > invoiceQty;
+  const needsReason = d + r > 0;
+  const docMissing = !gate.billScanned;
 
   function submit() {
+    const reasons = [reasonCode, qcReasons].filter(Boolean).join(' — ');
     dispatch({
       type: 'SAVE_GRN',
       payload: {
-        gateEntryId: gateId,
+        gateEntryId: gate.id,
         sku: material,
         poQty: invoiceQty,
         invoiceQty,
         split: { accepted: a, qcHold: h, defective: d, rejected: r },
-        qcReasons: qcReasons || undefined,
+        qcReasons: reasons || undefined,
         suggestedBin: suggestedBin || 'UNBINNED',
       },
     });
@@ -113,6 +123,13 @@ function QcForm({ gateId, label, invoiceQty, material }: { gateId: string; label
           Invoice Qty {invoiceQty}
         </span>
       </div>
+
+      {docMissing && (
+        <div className="flex items-center gap-2 text-xs rounded-[var(--radius)] px-3 py-2 mb-3" style={{ background: 'var(--status-critical-bg)', color: 'var(--status-critical)' }}>
+          <AlertTriangle size={14} />
+          Bill/document scan was never confirmed at the gate — posting is blocked until that's resolved.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Accepted">
@@ -145,12 +162,26 @@ function QcForm({ gateId, label, invoiceQty, material }: { gateId: string; label
         <Field label="Suggested bin">
           <Input value={suggestedBin} onChange={(e) => setSuggestedBin(e.target.value)} placeholder="BHW-CHEM-A1" />
         </Field>
-        <Field label="QC reasons">
-          <Textarea rows={1} value={qcReasons} onChange={(e) => setQcReasons(e.target.value)} placeholder="Damage, leakage, wrong item…" />
+        <Field label="Reason code" hint={needsReason ? 'Required — defective or rejected qty entered' : undefined}>
+          <Select value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+            <option value="">Select reason…</option>
+            {reasonCodes.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </Select>
         </Field>
       </div>
+      <Field label="Reason details">
+        <Textarea rows={1} value={qcReasons} onChange={(e) => setQcReasons(e.target.value)} placeholder="Optional detail — e.g. minor bag damage on 1 pallet" className="mt-3" />
+      </Field>
 
-      <Button className="mt-4" onClick={submit} disabled={physicalReceived === 0 || overReceived}>
+      <Button
+        className="mt-4"
+        onClick={submit}
+        disabled={physicalReceived === 0 || overReceived || docMissing || (needsReason && !reasonCode)}
+      >
         Post GRN &amp; update stock
       </Button>
     </Card>

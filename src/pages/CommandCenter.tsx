@@ -78,7 +78,7 @@ export default function CommandCenter() {
             <h2 className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
               Open gate entries
             </h2>
-            <Link to="/guard" className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--brand)' }}>
+            <Link to="/guard/scan" className="text-xs font-medium flex items-center gap-1" style={{ color: 'var(--brand)' }}>
               New gate entry <ArrowRight size={13} />
             </Link>
           </div>

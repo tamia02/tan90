@@ -19,7 +19,7 @@ import type {
   ValidationIssue,
   VendorSubmission,
 } from './types';
-import type { Role } from './auth';
+import { roleMeta, type Role } from './auth';
 
 export interface Session {
   name: string;
@@ -34,6 +34,13 @@ export interface ZohoConnection {
   syncCount: number;
 }
 
+export interface AuditEntry {
+  id: string;
+  timestamp: string;
+  action: string;
+  detail: string;
+}
+
 interface State {
   gateEntries: GateEntry[];
   issues: ValidationIssue[];
@@ -44,6 +51,7 @@ interface State {
   finance: FinanceRecord[];
   auth: Partial<Record<Role, Session>>;
   zoho: ZohoConnection;
+  auditLog: AuditEntry[];
 }
 
 const initialState: State = {
@@ -56,6 +64,7 @@ const initialState: State = {
   finance: seedFinanceRecords,
   auth: {},
   zoho: { connected: false, syncCount: 0 },
+  auditLog: [],
 };
 
 type Action =
@@ -87,17 +96,20 @@ function nextId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 }
 
-function reducer(state: State, action: Action): State {
+function baseReducer(state: State, action: Action): State {
   switch (action.type) {
     case 'ADD_VENDOR_SUBMISSION':
       return { ...state, vendorSubmissions: [action.payload, ...state.vendorSubmissions] };
 
-    case 'ADD_GATE_ENTRY':
+    case 'ADD_GATE_ENTRY': {
+      const blocking = action.issues.some((i) => i.severity === 'hardFail' || i.severity === 'redFlag');
+      const gate = blocking ? action.payload : { ...action.payload, status: 'validated' as const };
       return {
         ...state,
-        gateEntries: [action.payload, ...state.gateEntries],
+        gateEntries: [gate, ...state.gateEntries],
         issues: [...action.issues, ...state.issues],
       };
+    }
 
     case 'UPDATE_ISSUE': {
       const issues = state.issues.map((issue) =>
@@ -223,6 +235,58 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+function describeAction(action: Action): { action: string; detail: string } | null {
+  switch (action.type) {
+    case 'ADD_VENDOR_SUBMISSION':
+      return { action: 'Vendor submission created', detail: `${action.payload.poNumber} · ${action.payload.vendorName}` };
+    case 'ADD_GATE_ENTRY':
+      return {
+        action: 'Gate entry created',
+        detail: `${action.payload.gateNo} · ${action.payload.vendorName ?? action.payload.vehicleNumber}${
+          action.issues.length ? ` · ${action.issues.length} validation issue(s) raised` : ' · cleared straight through'
+        }`,
+      };
+    case 'UPDATE_ISSUE':
+      return {
+        action: `Issue ${action.payload.status}`,
+        detail: `${action.payload.id}${action.payload.owner ? ` · owner ${action.payload.owner}` : ''}`,
+      };
+    case 'START_UNLOADING':
+      return null; // paired with COMPLETE_UNLOADING in the same UI action — logged once, not twice
+    case 'COMPLETE_UNLOADING':
+      return { action: 'Unloading completed', detail: action.payload.gateEntryId };
+    case 'SAVE_GRN':
+      return {
+        action: 'GRN posted, stock updated',
+        detail: `${action.payload.gateEntryId} · accepted ${action.payload.split.accepted}, defective ${action.payload.split.defective}, rejected ${action.payload.split.rejected}`,
+      };
+    case 'SET_VENDOR_STATUS':
+      return { action: `Vendor status set to ${action.payload.vendorStatus}`, detail: action.payload.gateEntryId };
+    case 'LOGIN':
+      return { action: `${roleMeta[action.payload.role].label} signed in`, detail: action.payload.name };
+    case 'LOGOUT':
+      return { action: `${roleMeta[action.payload.role].label} signed out`, detail: '' };
+    case 'ZOHO_CONNECT':
+      return { action: 'Zoho connected', detail: action.payload.orgName };
+    case 'ZOHO_DISCONNECT':
+      return { action: 'Zoho disconnected', detail: '' };
+    case 'ZOHO_SYNCED':
+      return { action: 'Zoho synced manually', detail: '' };
+    default:
+      return null;
+  }
+}
+
+// Wraps the state reducer with an append-only audit trail — every
+// meaningful action leaves a row here, and nothing ever removes one.
+function reducer(state: State, action: Action): State {
+  const next = baseReducer(state, action);
+  const described = describeAction(action);
+  if (!described) return next;
+  const entry: AuditEntry = { id: nextId('AL'), timestamp: new Date().toISOString(), ...described };
+  return { ...next, auditLog: [entry, ...next.auditLog].slice(0, 300) };
+}
+
 const STORAGE_KEY = 'tan90-grn-demo-v1';
 
 function loadInitial(): State {
@@ -235,6 +299,7 @@ function loadInitial(): State {
         ...parsed,
         auth: { ...initialState.auth, ...parsed.auth },
         zoho: { ...initialState.zoho, ...parsed.zoho },
+        auditLog: parsed.auditLog ?? initialState.auditLog,
       };
     }
   } catch {
@@ -267,6 +332,7 @@ export function useStore() {
 }
 
 export function resetDemo() {
+  if (!window.confirm('Reset all demo data? This clears every gate entry, GRN, ledger posting and login session in this browser — it cannot be undone.')) return;
   localStorage.removeItem(STORAGE_KEY);
   window.location.reload();
 }

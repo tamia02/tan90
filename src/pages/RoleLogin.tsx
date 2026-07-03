@@ -29,7 +29,7 @@ export default function RoleLogin() {
         >
           <meta.icon size={26} />
         </div>
-        <PageHeader title={meta.loginTitle} subtitle={`Sign in to continue to ${meta.label} module.`} />
+        <PageHeader title={meta.loginTitle} subtitle={`Sign in to continue to the ${meta.moduleName}.`} />
       </div>
 
       <Card className="p-5">
