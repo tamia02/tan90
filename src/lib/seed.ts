@@ -3,9 +3,11 @@ import type {
   GateEntry,
   GrnRecord,
   LedgerEntry,
+  SkuMasterEntry,
   TeamMember,
   UnloadingRecord,
   ValidationIssue,
+  VendorMasterEntry,
   VendorSubmission,
 } from './types';
 
@@ -157,7 +159,7 @@ export const seedUnloadingRecords: UnloadingRecord[] = [
 export const seedGrnRecords: GrnRecord[] = [
   {
     gateEntryId: HCC_GATE_ID,
-    sku: 'SKU-NAF-001',
+    sku: 'Sodium Fluoride',
     poQty: 700,
     invoiceQty: 700,
     physicalReceived: 695,
@@ -175,7 +177,7 @@ export const seedLedgerEntries: LedgerEntry[] = [
     id: 'LG-9001',
     timestamp: '2026-06-25 11:22:00',
     gateEntryId: HCC_GATE_ID,
-    sku: 'SKU-NAF-001',
+    sku: 'Sodium Fluoride',
     bin: 'BHW-CHEM-A1',
     bucket: 'available',
     qty: 690,
@@ -184,7 +186,7 @@ export const seedLedgerEntries: LedgerEntry[] = [
     id: 'LG-9002',
     timestamp: '2026-06-25 11:22:00',
     gateEntryId: HCC_GATE_ID,
-    sku: 'SKU-NAF-001',
+    sku: 'Sodium Fluoride',
     bin: 'BHW-CHEM-A1',
     bucket: 'defective',
     qty: 5,
@@ -215,4 +217,18 @@ export const seedTeamMembers: TeamMember[] = [
   { id: 'TM-005', name: 'Priya Deshmukh', phone: '+91 98200 77889', description: 'Bhiwandi warehouse', role: 'storeManager', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
   { id: 'TM-006', name: 'Farhan Ali', phone: '+91 98200 99001', description: 'Vendor payments', role: 'finance', superAdmin: false, createdAt: '2026-05-02 09:00:00' },
   { id: 'TM-007', name: 'Priya Admin', phone: '+91 98200 11000', description: 'Founder — full access', role: 'admin', superAdmin: true, createdAt: '2026-05-02 09:00:00' },
+];
+
+export const seedSkuMaster: SkuMasterEntry[] = [
+  { id: 'SKU-001', sku: 'Sodium Fluoride', category: 'Chemical — Raw Material', unit: 'KG', defaultBin: 'BHW-CHEM-A1', mapped: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'SKU-002', sku: 'Calcium Carbonate', category: 'Chemical — Raw Material', unit: 'KG', defaultBin: 'BHW-CHEM-A2', mapped: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'SKU-003', sku: 'Sodium Sulphate', category: 'Chemical — Raw Material', unit: 'KG', defaultBin: 'BHW-CHEM-A3', mapped: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'SKU-004', sku: 'Barium Chloride (new)', category: 'Chemical — Trial', unit: 'KG', defaultBin: '', mapped: false, createdAt: '2026-06-20 09:00:00' },
+];
+
+export const seedVendorMaster: VendorMasterEntry[] = [
+  { id: 'VM-001', vendorName: 'Hindustan Chemical Corporation', gstNumber: '27AACCH1234K1Z5', contactPhone: '+91 22 6712 4400', contactEmail: 'accounts@hindustanchem.example', category: 'Raw material', active: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'VM-002', vendorName: 'Konkan Minerals Pvt Ltd', gstNumber: '27AAFCK5566L1Z2', contactPhone: '+91 22 6600 1122', contactEmail: 'sales@konkanminerals.example', category: 'Raw material', active: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'VM-003', vendorName: 'Sagar Industrial Chemicals', gstNumber: '27AADCS7788M1Z9', contactPhone: '+91 22 6600 3344', contactEmail: 'orders@sagarindustrial.example', category: 'Raw material', active: true, createdAt: '2026-05-02 09:00:00' },
+  { id: 'VM-004', vendorName: 'Trial Run Minerals', gstNumber: '27AAGCT9911N1Z4', contactPhone: '+91 22 6600 5566', category: 'Trial vendor', active: false, createdAt: '2026-06-20 09:00:00' },
 ];

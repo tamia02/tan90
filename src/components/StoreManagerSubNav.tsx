@@ -1,14 +1,16 @@
 import { NavLink } from 'react-router-dom';
-import { ClipboardList, Clock, Gauge, ScanLine } from 'lucide-react';
+import { BookOpen, ClipboardCheck, Gauge, LayoutList, PackageSearch, Warehouse } from 'lucide-react';
 
 const tabs = [
-  { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true },
-  { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine, end: false },
-  { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList, end: false },
-  { to: '/guard/sla', label: 'SLA Tracker', icon: Clock, end: false },
+  { to: '/grn', label: 'Dashboard', icon: Gauge, end: true },
+  { to: '/grn/check', label: 'GRN Check', icon: ClipboardCheck, end: false },
+  { to: '/grn/register', label: 'GRN Register', icon: LayoutList, end: false },
+  { to: '/grn/stock-balance', label: 'Stock Balance', icon: PackageSearch, end: false },
+  { to: '/grn/ledger', label: 'Stock Ledger', icon: BookOpen, end: false },
+  { to: '/grn/bins', label: 'Shelf & Bin', icon: Warehouse, end: false },
 ];
 
-export default function GuardSubNav() {
+export default function StoreManagerSubNav() {
   return (
     <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
       {tabs.map((t) => (

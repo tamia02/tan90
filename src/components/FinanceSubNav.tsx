@@ -1,14 +1,14 @@
 import { NavLink } from 'react-router-dom';
-import { ClipboardList, Clock, Gauge, ScanLine } from 'lucide-react';
+import { FileText, Gauge, Receipt, TrendingUp } from 'lucide-react';
 
 const tabs = [
-  { to: '/guard', label: 'Guard Dashboard', icon: Gauge, end: true },
-  { to: '/guard/scan', label: 'Bill Scan', icon: ScanLine, end: false },
-  { to: '/guard/entries', label: 'Guard Entries', icon: ClipboardList, end: false },
-  { to: '/guard/sla', label: 'SLA Tracker', icon: Clock, end: false },
+  { to: '/finance', label: 'Dashboard', icon: Gauge, end: true },
+  { to: '/finance/review', label: 'Finance Review', icon: FileText, end: false },
+  { to: '/finance/claims', label: 'Vendor Claims', icon: Receipt, end: false },
+  { to: '/finance/reports', label: 'Reports', icon: TrendingUp, end: false },
 ];
 
-export default function GuardSubNav() {
+export default function FinanceSubNav() {
   return (
     <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
       {tabs.map((t) => (

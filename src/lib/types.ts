@@ -15,6 +15,27 @@ export interface TeamMember {
   createdAt: string;
 }
 
+export interface SkuMasterEntry {
+  id: string;
+  sku: string;
+  category: string;
+  unit: string;
+  defaultBin: string;
+  mapped: boolean;
+  createdAt: string;
+}
+
+export interface VendorMasterEntry {
+  id: string;
+  vendorName: string;
+  gstNumber: string;
+  contactPhone: string;
+  contactEmail?: string;
+  category: string;
+  active: boolean;
+  createdAt: string;
+}
+
 export type IssueSeverity = 'hardFail' | 'redFlag' | 'warning';
 export type IssueStatus = 'open' | 'approved' | 'resolved' | 'escalated';
 

@@ -1,16 +1,20 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, Check, CheckCircle2, FileText, Loader2, Sparkles, Truck, UploadCloud } from 'lucide-react';
 import { useStore } from '../lib/store';
+import VendorSubNav from '../components/VendorSubNav';
 import { Button, Card, Field, Input, PageHeader } from '../components/ui';
 import type { VendorSubmission } from '../lib/types';
 import { fetchZohoInvoiceForPO } from '../lib/zoho';
 
 const steps = ['PO Number', 'Invoice', 'E-way Bill', 'LR / POD'];
 
-export default function VendorPortal() {
-  const { vendorSubmissions, zoho, dispatch } = useStore();
+export default function VendorNewSubmission() {
+  const { zoho, dispatch } = useStore();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [lastPo, setLastPo] = useState('');
   const [zohoState, setZohoState] = useState<'idle' | 'loading' | 'synced' | 'not_found'>('idle');
   const [form, setForm] = useState({
     poNumber: '',
@@ -65,6 +69,7 @@ export default function VendorPortal() {
       submittedAt: new Date().toISOString(),
     };
     dispatch({ type: 'ADD_VENDOR_SUBMISSION', payload: record });
+    setLastPo(form.poNumber);
     setSubmitted(true);
   }
 
@@ -77,32 +82,34 @@ export default function VendorPortal() {
             Documents submitted
           </h1>
           <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-            PO {form.poNumber} — the guard at gate can now match this against the physical delivery.
+            PO {lastPo} — the guard at gate can now match this against the physical delivery.
           </p>
-          <Button
-            className="mt-5"
-            onClick={() => {
-              setSubmitted(false);
-              setStep(0);
-              setZohoState('idle');
-              setForm({ poNumber: '', vendorName: '', invoiceNumber: '', invoiceQty: '', material: '', ewayBillNumber: '', hasInvoice: false, hasEwayBill: false, hasLrPod: false });
-            }}
-          >
-            Submit another
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 mt-5">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setSubmitted(false);
+                setStep(0);
+                setZohoState('idle');
+                setForm({ poNumber: '', vendorName: '', invoiceNumber: '', invoiceQty: '', material: '', ewayBillNumber: '', hasInvoice: false, hasEwayBill: false, hasLrPod: false });
+              }}
+            >
+              Submit another
+            </Button>
+            <Button className="flex-1" onClick={() => navigate('/vendor/submissions')}>
+              View submissions
+            </Button>
+          </div>
         </Card>
-
-        <h2 className="text-sm font-semibold mt-8 mb-2" style={{ color: 'var(--text-primary)' }}>
-          Your submissions
-        </h2>
-        <SubmissionList submissions={vendorSubmissions} />
       </div>
     );
   }
 
   return (
     <div className="max-w-md mx-auto">
-      <PageHeader title="Vendor Portal" subtitle="Upload PO-linked documents before the vehicle reaches the gate." />
+      <PageHeader title="New Submission" subtitle="Upload PO-linked documents before the vehicle reaches the gate." />
+      <VendorSubNav />
 
       <div className="flex items-center gap-1 mb-5">
         {steps.map((label, i) => (
@@ -154,7 +161,7 @@ export default function VendorPortal() {
               </button>
             ) : (
               <p className="text-xs rounded-[var(--radius)] px-3 py-2" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
-                Zoho isn't connected yet (Admin → Zoho Integration) — enter invoice details manually below.
+                Zoho isn't connected yet (Admin → Integrations) — enter invoice details manually below.
               </p>
             )}
             {zohoState === 'not_found' && (
@@ -239,27 +246,5 @@ function UploadTile({ icon, label, done, onClick }: { icon: React.ReactNode; lab
       {icon}
       {label}
     </button>
-  );
-}
-
-function SubmissionList({ submissions }: { submissions: VendorSubmission[] }) {
-  return (
-    <div className="flex flex-col gap-2">
-      {submissions.map((s) => (
-        <Card key={s.id} className="p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {s.poNumber}
-            </span>
-            <span className="text-xs capitalize" style={{ color: 'var(--text-muted)' }}>
-              {s.status.replace('_', ' ')}
-            </span>
-          </div>
-          <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-            {s.vendorName} · {s.invoiceQty || '—'} qty
-          </div>
-        </Card>
-      ))}
-    </div>
   );
 }

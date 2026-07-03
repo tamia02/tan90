@@ -1,73 +1,25 @@
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useStore } from '../lib/store';
+import QcSubNav from '../components/QcSubNav';
 import { Button, Card, EmptyState, Field, Input, PageHeader, Select, Textarea } from '../components/ui';
 import { gateEntryLabel } from '../lib/derived';
 import type { GateEntry } from '../lib/types';
 
 export default function QcModule() {
-  const { gateEntries, qcResults } = useStore();
+  const { gateEntries } = useStore();
   const pending = gateEntries.filter((g) => g.status === 'grn');
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader title="QC Check" subtitle="Accept / hold / defective / reject split with reasons, then send to GRN Check." />
+      <PageHeader title="QC Queue" subtitle="Accept / hold / defective / reject split with reasons, then send to GRN Check." />
+      <QcSubNav />
 
       <div className="flex flex-col gap-4">
-        <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Awaiting QC Check
-        </h2>
         {pending.length === 0 && <EmptyState text="Nothing waiting — complete unloading at the Unloading Desk first." />}
         {pending.map((g) => (
           <QcForm key={g.id} gate={g} label={gateEntryLabel(g)} />
         ))}
-      </div>
-
-      {qcResults.length > 0 && (
-        <>
-          <h2 className="text-sm font-semibold mt-8 mb-3" style={{ color: 'var(--text-primary)' }}>
-            Completed QC checks
-          </h2>
-          <div className="flex flex-col gap-3">
-            {qcResults.map((r) => (
-              <Card key={r.gateEntryId} className="p-4">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {r.sku}
-                  </span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                    Sent to GRN Check
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3 text-center">
-                  <Metric label="Invoice" value={r.invoiceQty} />
-                  <Metric label="Accepted" value={r.split.accepted} tone="var(--status-good)" />
-                  <Metric label="QC Hold" value={r.split.qcHold} tone="var(--status-warning)" />
-                  <Metric label="Defective" value={r.split.defective} tone="var(--status-serious)" />
-                  <Metric label="Missing" value={r.missing} tone="var(--status-critical)" />
-                </div>
-                {r.qcReasons && (
-                  <p className="text-xs mt-3" style={{ color: 'var(--text-secondary)' }}>
-                    {r.qcReasons}
-                  </p>
-                )}
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-function Metric({ label, value, tone }: { label: string; value: number; tone?: string }) {
-  return (
-    <div>
-      <div className="text-lg font-semibold tabular-nums" style={{ color: tone ?? 'var(--text-primary)' }}>
-        {value}
-      </div>
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-        {label}
       </div>
     </div>
   );

@@ -4,9 +4,11 @@ import {
   seedGateEntries,
   seedGrnRecords,
   seedLedgerEntries,
+  seedSkuMaster,
   seedTeamMembers,
   seedUnloadingRecords,
   seedValidationIssues,
+  seedVendorMaster,
   seedVendorSubmissions,
 } from './seed';
 import type {
@@ -17,9 +19,11 @@ import type {
   LedgerEntry,
   QcResult,
   QcSplit,
+  SkuMasterEntry,
   TeamMember,
   UnloadingRecord,
   ValidationIssue,
+  VendorMasterEntry,
   VendorSubmission,
 } from './types';
 import { roleMeta, type Role } from './auth';
@@ -59,6 +63,8 @@ interface State {
   ledger: LedgerEntry[];
   finance: FinanceRecord[];
   teamMembers: TeamMember[];
+  skuMaster: SkuMasterEntry[];
+  vendorMaster: VendorMasterEntry[];
   auth: ActiveSession | null;
   zoho: ZohoConnection;
   auditLog: AuditEntry[];
@@ -74,6 +80,8 @@ const initialState: State = {
   ledger: seedLedgerEntries,
   finance: seedFinanceRecords,
   teamMembers: seedTeamMembers,
+  skuMaster: seedSkuMaster,
+  vendorMaster: seedVendorMaster,
   auth: null,
   zoho: { connected: false, syncCount: 0 },
   auditLog: [],
@@ -104,7 +112,11 @@ type Action =
   | { type: 'ZOHO_DISCONNECT' }
   | { type: 'ZOHO_SYNCED' }
   | { type: 'ADD_TEAM_MEMBER'; payload: TeamMember }
-  | { type: 'DELETE_TEAM_MEMBER'; payload: { id: string } };
+  | { type: 'DELETE_TEAM_MEMBER'; payload: { id: string } }
+  | { type: 'ADD_SKU'; payload: SkuMasterEntry }
+  | { type: 'DELETE_SKU'; payload: { id: string } }
+  | { type: 'ADD_VENDOR_MASTER'; payload: VendorMasterEntry }
+  | { type: 'DELETE_VENDOR_MASTER'; payload: { id: string } };
 
 function nextId(prefix: string) {
   return `${prefix}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
@@ -273,6 +285,18 @@ function baseReducer(state: State, action: Action): State {
     case 'DELETE_TEAM_MEMBER':
       return { ...state, teamMembers: state.teamMembers.filter((m) => m.id !== action.payload.id) };
 
+    case 'ADD_SKU':
+      return { ...state, skuMaster: [action.payload, ...state.skuMaster] };
+
+    case 'DELETE_SKU':
+      return { ...state, skuMaster: state.skuMaster.filter((s) => s.id !== action.payload.id) };
+
+    case 'ADD_VENDOR_MASTER':
+      return { ...state, vendorMaster: [action.payload, ...state.vendorMaster] };
+
+    case 'DELETE_VENDOR_MASTER':
+      return { ...state, vendorMaster: state.vendorMaster.filter((v) => v.id !== action.payload.id) };
+
     default:
       return state;
   }
@@ -326,6 +350,18 @@ function describeAction(action: Action, prevState: State): { action: string; det
       const removed = prevState.teamMembers.find((m) => m.id === action.payload.id);
       return { action: 'Team member removed', detail: removed ? `${removed.name} · ${removed.role ? roleMeta[removed.role].label : 'No role'}` : action.payload.id };
     }
+    case 'ADD_SKU':
+      return { action: 'SKU added to master', detail: `${action.payload.sku} · ${action.payload.category}` };
+    case 'DELETE_SKU': {
+      const removed = prevState.skuMaster.find((s) => s.id === action.payload.id);
+      return { action: 'SKU removed from master', detail: removed ? removed.sku : action.payload.id };
+    }
+    case 'ADD_VENDOR_MASTER':
+      return { action: 'Vendor added to master', detail: `${action.payload.vendorName} · ${action.payload.gstNumber}` };
+    case 'DELETE_VENDOR_MASTER': {
+      const removed = prevState.vendorMaster.find((v) => v.id === action.payload.id);
+      return { action: 'Vendor removed from master', detail: removed ? removed.vendorName : action.payload.id };
+    }
     default:
       return null;
   }
@@ -354,6 +390,8 @@ function loadInitial(): State {
         auth: parsed.auth ?? null,
         qcResults: parsed.qcResults ?? initialState.qcResults,
         teamMembers: parsed.teamMembers ?? initialState.teamMembers,
+        skuMaster: parsed.skuMaster ?? initialState.skuMaster,
+        vendorMaster: parsed.vendorMaster ?? initialState.vendorMaster,
         zoho: { ...initialState.zoho, ...parsed.zoho },
         auditLog: parsed.auditLog ?? initialState.auditLog,
       };

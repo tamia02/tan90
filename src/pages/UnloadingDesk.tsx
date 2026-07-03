@@ -4,6 +4,7 @@ import { Button, Card, CheckboxRow, EmptyState, Field, Input, PageHeader } from 
 import { GateStatusBadge } from '../components/Badge';
 import { gateEntryLabel } from '../lib/derived';
 import { Camera, CheckCircle2 } from 'lucide-react';
+import StoreExecSubNav from '../components/StoreExecSubNav';
 
 export default function UnloadingDesk() {
   const { gateEntries, unloadingRecords } = useStore();
@@ -13,6 +14,7 @@ export default function UnloadingDesk() {
   return (
     <div className="max-w-4xl mx-auto">
       <PageHeader title="Unloading Desk" subtitle="Box count, POD/LR, staging area and seal/load proof — then send to QC Check." />
+      <StoreExecSubNav />
 
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useStore } from '../lib/store';
+import FinanceSubNav from '../components/FinanceSubNav';
 import { Button, Card, EmptyState, PageHeader, Select, Textarea } from '../components/ui';
 import { VendorStatusBadge } from '../components/Badge';
 import type { FinanceRecord, VendorClosureStatus } from '../lib/types';
 
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
-export default function FinanceModule() {
+export default function FinanceReview() {
   const { finance } = useStore();
 
   const totals = finance.reduce(
@@ -21,7 +22,8 @@ export default function FinanceModule() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <PageHeader title="Finance Module" subtitle="Deductions, final payable and vendor closure status." />
+      <PageHeader title="Finance Review" subtitle="Deductions, final payable and vendor closure status." />
+      <FinanceSubNav />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         <Card className="p-4">
