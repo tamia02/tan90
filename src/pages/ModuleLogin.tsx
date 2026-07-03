@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, CheckCircle2, LogOut } from 'lucide-react';
-import { Card, Button } from '../components/ui';
+import { LogIn, LogOut } from 'lucide-react';
+import AuthHero from '../components/AuthHero';
+import { Button, Field, Input, Select } from '../components/ui';
 import { roleMeta, roleOrder, type Role } from '../lib/auth';
 import { useStore } from '../lib/store';
 
@@ -9,129 +11,128 @@ const roles = roleOrder.map((r) => roleMeta[r]);
 export default function ModuleLogin() {
   const navigate = useNavigate();
   const { auth, dispatch } = useStore();
+  const [role, setRole] = useState<Role>('guard');
+  const [name, setName] = useState('');
+  const [id, setId] = useState('');
 
-  function demoLogin(role: Role) {
-    const meta = roleMeta[role];
-    dispatch({ type: 'LOGIN', payload: { role, name: meta.demoName } });
+  function demoLogin(r: Role) {
+    const meta = roleMeta[r];
+    dispatch({ type: 'LOGIN', payload: { role: r, name: meta.demoName } });
     navigate(meta.homePath);
   }
 
+  function secureLogin(e: React.FormEvent) {
+    e.preventDefault();
+    dispatch({ type: 'LOGIN', payload: { role, name: name.trim() } });
+    navigate(roleMeta[role].homePath);
+  }
+
+  const selectedMeta = roleMeta[role];
+
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="text-center mb-6 mt-4">
-        <div
-          className="w-14 h-14 rounded-2xl grid place-items-center font-bold text-white text-lg mx-auto mb-4"
-          style={{ background: 'var(--brand)' }}
-        >
-          T90
-        </div>
-        <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Module Access
-        </h1>
-        <p className="text-sm mt-1.5 max-w-xl mx-auto" style={{ color: 'var(--text-secondary)' }}>
-          Select a role and sign in. Only one module can be open at a time.
-        </p>
-      </div>
+    <div className="min-h-svh flex" style={{ background: 'var(--surface-1)' }}>
+      <AuthHero />
 
-      <div className="flex flex-wrap justify-center gap-2 mb-6">
-        <StatPill label="Roles" value="7" hint="Separate entry points" />
-        <StatPill label="Flow" value="Live" hint="GRN to ledger" />
-        <StatPill label="Mode" value="Client Ready" hint="Production labels" />
-      </div>
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md">
+          <div className="flex items-center gap-2.5 mb-6">
+            <div className="w-11 h-11 rounded-xl grid place-items-center font-bold text-white" style={{ background: 'var(--brand)' }}>
+              T90
+            </div>
+            <div>
+              <div className="font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
+                TAN90 ERP
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                GRN · Store · Ledger
+              </div>
+            </div>
+          </div>
 
-      {auth && (
-        <div
-          className="flex items-center justify-between gap-3 rounded-[var(--radius)] border px-4 py-3 mb-6"
-          style={{ background: 'var(--brand-bg)', borderColor: 'var(--brand)' }}
-        >
-          <p className="text-sm" style={{ color: 'var(--brand)' }}>
-            Signed in as <strong>{roleMeta[auth.role].label}</strong> ({auth.name}). Log out to switch modules.
+          <h1 className="text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            Welcome back!
+          </h1>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+            Select a module below, or sign in with your details. Only one module can be open at a time.
           </p>
-          <Button variant="secondary" onClick={() => dispatch({ type: 'LOGOUT' })}>
-            <LogOut size={14} />
-            Log out
-          </Button>
-        </div>
-      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {roles.map((meta) => {
-          const isMine = auth?.role === meta.role;
-          const blocked = Boolean(auth) && !isMine;
-          return (
-            <Card key={meta.role} className="p-4 flex flex-col" style={blocked ? { opacity: 0.55 } : undefined}>
-              <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-10 h-10 rounded-[var(--radius)] grid place-items-center shrink-0"
-                  style={{ background: 'var(--brand-bg)', color: 'var(--brand)' }}
-                >
-                  <meta.icon size={19} />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>
+          {auth && (
+            <div
+              className="flex items-center justify-between gap-3 rounded-[var(--radius)] border px-4 py-3 mb-6"
+              style={{ background: 'var(--brand-bg)', borderColor: 'var(--brand)' }}
+            >
+              <p className="text-sm" style={{ color: 'var(--brand)' }}>
+                Signed in as <strong>{roleMeta[auth.role].label}</strong> ({auth.name}).
+              </p>
+              <Button variant="secondary" onClick={() => dispatch({ type: 'LOGOUT' })}>
+                <LogOut size={14} />
+                Log out
+              </Button>
+            </div>
+          )}
+
+          <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
+            <div className="text-xs font-bold tracking-wider mb-3" style={{ color: 'var(--text-primary)' }}>
+              DEMO LOGIN
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {roles.map((meta) => {
+                const isMine = auth?.role === meta.role;
+                const blocked = Boolean(auth) && !isMine;
+                return (
+                  <button
+                    key={meta.role}
+                    type="button"
+                    disabled={blocked}
+                    onClick={() => demoLogin(meta.role)}
+                    className="flex items-center gap-2 rounded-[var(--radius)] border px-3 py-2.5 text-sm font-medium text-left disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--brand-bg)] transition-colors"
+                    style={{
+                      borderColor: isMine ? 'var(--brand)' : 'var(--border)',
+                      color: isMine ? 'var(--brand)' : 'var(--text-primary)',
+                      background: isMine ? 'var(--brand-bg)' : 'transparent',
+                    }}
+                  >
+                    <meta.icon size={16} className="shrink-0" />
+                    <span className="truncate">{meta.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="h-px flex-1" style={{ background: 'var(--border)' }} />
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              SECURE LOGIN
+            </span>
+            <div className="h-px flex-1" style={{ background: 'var(--border)' }} />
+          </div>
+
+          <form onSubmit={secureLogin} className="flex flex-col gap-3.5">
+            <Field label="Module">
+              <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
+                {roles.map((meta) => (
+                  <option key={meta.role} value={meta.role}>
                     {meta.label}
-                  </div>
-                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                    {meta.moduleName}
-                  </div>
-                </div>
-                {isMine && <CheckCircle2 size={16} color="var(--status-good)" className="ml-auto shrink-0" />}
-              </div>
-
-              <ul className="flex flex-col gap-1.5 mb-4 flex-1">
-                {meta.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    <Check size={12} color="var(--brand)" className="shrink-0" />
-                    {f}
-                  </li>
+                  </option>
                 ))}
-              </ul>
-
-              {isMine && (
-                <p className="text-xs mb-2" style={{ color: 'var(--status-good)' }}>
-                  Signed in as {auth!.name}
-                </p>
-              )}
-              {blocked && (
-                <p className="text-xs mb-2" style={{ color: 'var(--text-muted)' }}>
-                  Log out of {roleMeta[auth!.role].label} to open this.
-                </p>
-              )}
-
-              <div className="flex gap-2">
-                <Button variant="secondary" className="flex-1" disabled={blocked} onClick={() => demoLogin(meta.role)}>
-                  Demo Login
-                </Button>
-                <Button
-                  className="flex-1"
-                  disabled={blocked}
-                  onClick={() => navigate(isMine ? meta.homePath : `/login/${meta.role}`)}
-                >
-                  {isMine ? 'Continue' : 'Secure Login'}
-                </Button>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function StatPill({ label, value, hint }: { label: string; value: string; hint: string }) {
-  return (
-    <div
-      className="rounded-[var(--radius)] border px-4 py-2 text-center"
-      style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}
-    >
-      <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-        {label}
-      </div>
-      <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-        {value}
-      </div>
-      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-        {hint}
+              </Select>
+            </Field>
+            <Field label="Full name">
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+            </Field>
+            <Field label={selectedMeta.idLabel}>
+              <Input value={id} onChange={(e) => setId(e.target.value)} placeholder={selectedMeta.idPlaceholder} required />
+            </Field>
+            <Button type="submit" className="w-full justify-center mt-1">
+              <LogIn size={16} />
+              Log in
+            </Button>
+            <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+              Demo prototype — any name and ID signs you in to the selected module.
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );

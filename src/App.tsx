@@ -21,9 +21,9 @@ export default function App() {
     <StoreProvider>
       <HashRouter>
         <Routes>
+          <Route path="/" element={<ModuleLogin />} />
+          <Route path="/login/:role" element={<RoleLogin />} />
           <Route element={<Layout />}>
-            <Route path="/" element={<ModuleLogin />} />
-            <Route path="/login/:role" element={<RoleLogin />} />
             <Route
               path="/command-center"
               element={

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { LogOut } from 'lucide-react';
+import { LogIn, LogOut } from 'lucide-react';
 import { roleMeta, type Role } from '../lib/auth';
 import { useStore } from '../lib/store';
-import { Button, Card, Field, Input, PageHeader } from '../components/ui';
+import AuthHero from '../components/AuthHero';
+import { Button, Field, Input } from '../components/ui';
 
 export default function RoleLogin() {
   const { role } = useParams<{ role: string }>();
@@ -26,55 +27,70 @@ export default function RoleLogin() {
     navigate(meta!.homePath, { replace: true });
   }
 
-  // Someone else's session is active — reached this URL directly rather
-  // than through the disabled card on Module Access. Same rule applies:
-  // logout has to be the deliberate step, not a side effect of this form.
-  if (auth) {
-    const current = roleMeta[auth.role];
-    return (
-      <div className="max-w-sm mx-auto mt-10">
-        <Card className="p-6 text-center">
-          <PageHeader
-            title={`Signed in as ${current.label}`}
-            subtitle={`Log out before signing in to ${meta.moduleName}.`}
-          />
-          <Button variant="danger" className="w-full justify-center" onClick={() => dispatch({ type: 'LOGOUT' })}>
-            <LogOut size={15} />
-            Log out of {current.label}
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-sm mx-auto mt-6 sm:mt-16">
-      <div className="text-center mb-6">
-        <div
-          className="w-14 h-14 rounded-2xl grid place-items-center mx-auto mb-4"
-          style={{ background: 'var(--brand-bg)', color: 'var(--brand)' }}
-        >
-          <meta.icon size={26} />
-        </div>
-        <PageHeader title={meta.loginTitle} subtitle={`Sign in to continue to the ${meta.moduleName}.`} />
-      </div>
+    <div className="min-h-svh flex" style={{ background: 'var(--surface-1)' }}>
+      <AuthHero />
 
-      <Card className="p-5">
-        <form onSubmit={submit} className="flex flex-col gap-4">
-          <Field label="Full name">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required autoFocus />
-          </Field>
-          <Field label={meta.idLabel}>
-            <Input value={id} onChange={(e) => setId(e.target.value)} placeholder={meta.idPlaceholder} required />
-          </Field>
-          <Button type="submit" className="w-full mt-1">
-            Sign in
-          </Button>
-          <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-            Demo prototype — any name and ID signs you in as {meta.label}.
-          </p>
-        </form>
-      </Card>
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-sm">
+          <div className="flex flex-col items-center text-center mb-6">
+            <div
+              className="w-14 h-14 rounded-2xl grid place-items-center mb-4"
+              style={{ background: 'var(--brand-bg)', color: 'var(--brand)' }}
+            >
+              <meta.icon size={26} />
+            </div>
+            <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {meta.loginTitle}
+            </h1>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Sign in to continue to the {meta.moduleName}.
+            </p>
+          </div>
+
+          {/* Someone else's session is active — reached this URL directly rather
+              than through a disabled card on Module Access. Same rule applies:
+              logout has to be the deliberate step, not a side effect of this form. */}
+          {auth ? (
+            <div className="rounded-2xl border p-5 text-center" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
+              <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+                You're signed in as <strong style={{ color: 'var(--text-primary)' }}>{roleMeta[auth.role].label}</strong>.
+                Log out before signing in to {meta.moduleName}.
+              </p>
+              <Button variant="danger" className="w-full justify-center" onClick={() => dispatch({ type: 'LOGOUT' })}>
+                <LogOut size={15} />
+                Log out of {roleMeta[auth.role].label}
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
+              <form onSubmit={submit} className="flex flex-col gap-3.5">
+                <Field label="Full name">
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required autoFocus />
+                </Field>
+                <Field label={meta.idLabel}>
+                  <Input value={id} onChange={(e) => setId(e.target.value)} placeholder={meta.idPlaceholder} required />
+                </Field>
+                <Button type="submit" className="w-full justify-center mt-1">
+                  <LogIn size={16} />
+                  Log in
+                </Button>
+                <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                  Demo prototype — any name and ID signs you in as {meta.label}.
+                </p>
+              </form>
+            </div>
+          )}
+
+          <button
+            onClick={() => navigate('/')}
+            className="w-full text-center text-xs font-medium mt-4"
+            style={{ color: 'var(--brand)' }}
+          >
+            ← Back to Module Access
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
