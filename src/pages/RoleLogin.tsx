@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { LogIn, LogOut } from 'lucide-react';
+import { LogIn, LogOut, Zap } from 'lucide-react';
 import { roleMeta, type Role } from '../lib/auth';
 import { useStore } from '../lib/store';
 import AuthHero from '../components/AuthHero';
@@ -24,6 +24,11 @@ export default function RoleLogin() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     dispatch({ type: 'LOGIN', payload: { role: meta!.role, name: name.trim() } });
+    navigate(meta!.homePath, { replace: true });
+  }
+
+  function demoLogin() {
+    dispatch({ type: 'LOGIN', payload: { role: meta!.role, name: meta!.demoName } });
     navigate(meta!.homePath, { replace: true });
   }
 
@@ -63,22 +68,42 @@ export default function RoleLogin() {
               </Button>
             </div>
           ) : (
-            <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
-              <form onSubmit={submit} className="flex flex-col gap-3.5">
-                <Field label="Full name">
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required autoFocus />
-                </Field>
-                <Field label={meta.idLabel}>
-                  <Input value={id} onChange={(e) => setId(e.target.value)} placeholder={meta.idPlaceholder} required />
-                </Field>
-                <Button type="submit" className="w-full justify-center mt-1">
-                  <LogIn size={16} />
-                  Log in
+            <div className="flex flex-col gap-4">
+              <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--brand)', background: 'var(--brand-bg)' }}>
+                <Button type="button" className="w-full justify-center" onClick={demoLogin}>
+                  <Zap size={16} />
+                  Demo login as {meta.demoName}
                 </Button>
-                <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
-                  Demo prototype — any name and ID signs you in as {meta.label}.
+                <p className="text-xs text-center mt-2.5" style={{ color: 'var(--brand)' }}>
+                  One click, no name or ID needed.
                 </p>
-              </form>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1" style={{ background: 'var(--border)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+                  OR SIGN IN MANUALLY
+                </span>
+                <div className="h-px flex-1" style={{ background: 'var(--border)' }} />
+              </div>
+
+              <div className="rounded-2xl border p-5" style={{ borderColor: 'var(--border)', background: 'var(--surface-3)' }}>
+                <form onSubmit={submit} className="flex flex-col gap-3.5">
+                  <Field label="Full name">
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" required />
+                  </Field>
+                  <Field label={meta.idLabel}>
+                    <Input value={id} onChange={(e) => setId(e.target.value)} placeholder={meta.idPlaceholder} required />
+                  </Field>
+                  <Button type="submit" variant="secondary" className="w-full justify-center mt-1">
+                    <LogIn size={16} />
+                    Log in
+                  </Button>
+                  <p className="text-xs text-center" style={{ color: 'var(--text-muted)' }}>
+                    Demo prototype — any name and ID signs you in as {meta.label}.
+                  </p>
+                </form>
+              </div>
             </div>
           )}
 

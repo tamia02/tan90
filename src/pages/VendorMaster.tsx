@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { CheckCircle2, Trash2, UserPlus, XCircle } from 'lucide-react';
+import { Boxes, CheckCircle2, Trash2, UserPlus, XCircle } from 'lucide-react';
 import AdminSubNav from '../components/AdminSubNav';
 import { Button, Card, CheckboxRow, EmptyState, Field, Input, PageHeader } from '../components/ui';
 import { useStore } from '../lib/store';
 import type { VendorMasterEntry } from '../lib/types';
 
 export default function VendorMaster() {
-  const { vendorMaster, dispatch } = useStore();
+  const { vendorMaster, vendorStockUpdates, dispatch } = useStore();
+  const stockUpdates = [...vendorStockUpdates].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   const [adding, setAdding] = useState(false);
   const [vendorName, setVendorName] = useState('');
   const [gstNumber, setGstNumber] = useState('');
@@ -119,6 +120,41 @@ export default function VendorMaster() {
                         <Trash2 size={15} />
                       </button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <h2 className="font-semibold text-sm mt-8 mb-3 flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+        <Boxes size={15} />
+        Vendor stock updates
+      </h2>
+      <Card className="p-0 overflow-hidden">
+        {stockUpdates.length === 0 ? (
+          <EmptyState text="No vendor stock updates yet." />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>
+                  <th className="px-4 py-2.5 font-medium">Vendor</th>
+                  <th className="px-4 py-2.5 font-medium">Material</th>
+                  <th className="px-4 py-2.5 font-medium">Quantity</th>
+                  <th className="px-4 py-2.5 font-medium">Note</th>
+                  <th className="px-4 py-2.5 font-medium">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockUpdates.map((u, i) => (
+                  <tr key={u.id} style={{ borderTop: i === 0 ? undefined : '1px solid var(--border)' }}>
+                    <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--text-primary)' }}>{u.vendorName}</td>
+                    <td className="px-4 py-2.5" style={{ color: 'var(--text-secondary)' }}>{u.material}</td>
+                    <td className="px-4 py-2.5" style={{ color: 'var(--text-primary)' }}>{u.quantity} {u.unit}</td>
+                    <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-muted)' }}>{u.note ?? '—'}</td>
+                    <td className="px-4 py-2.5 text-xs" style={{ color: 'var(--text-muted)' }}>{new Date(u.updatedAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>

@@ -9,6 +9,7 @@ import {
   seedUnloadingRecords,
   seedValidationIssues,
   seedVendorMaster,
+  seedVendorStockUpdates,
   seedVendorSubmissions,
 } from './seed';
 import type {
@@ -24,6 +25,7 @@ import type {
   UnloadingRecord,
   ValidationIssue,
   VendorMasterEntry,
+  VendorStockUpdate,
   VendorSubmission,
 } from './types';
 import { roleMeta, type Role } from './auth';
@@ -57,6 +59,7 @@ interface State {
   gateEntries: GateEntry[];
   issues: ValidationIssue[];
   vendorSubmissions: VendorSubmission[];
+  vendorStockUpdates: VendorStockUpdate[];
   unloadingRecords: UnloadingRecord[];
   qcResults: QcResult[];
   grnRecords: GrnRecord[];
@@ -74,6 +77,7 @@ const initialState: State = {
   gateEntries: seedGateEntries,
   issues: seedValidationIssues,
   vendorSubmissions: seedVendorSubmissions,
+  vendorStockUpdates: seedVendorStockUpdates,
   unloadingRecords: seedUnloadingRecords,
   qcResults: [],
   grnRecords: seedGrnRecords,
@@ -89,6 +93,7 @@ const initialState: State = {
 
 type Action =
   | { type: 'ADD_VENDOR_SUBMISSION'; payload: VendorSubmission }
+  | { type: 'ADD_VENDOR_STOCK_UPDATE'; payload: VendorStockUpdate }
   | { type: 'ADD_GATE_ENTRY'; payload: GateEntry; issues: ValidationIssue[] }
   | { type: 'UPDATE_ISSUE'; payload: { id: string; status: IssueStatus; owner?: string; note?: string } }
   | { type: 'START_UNLOADING'; payload: UnloadingRecord }
@@ -126,6 +131,9 @@ function baseReducer(state: State, action: Action): State {
   switch (action.type) {
     case 'ADD_VENDOR_SUBMISSION':
       return { ...state, vendorSubmissions: [action.payload, ...state.vendorSubmissions] };
+
+    case 'ADD_VENDOR_STOCK_UPDATE':
+      return { ...state, vendorStockUpdates: [action.payload, ...state.vendorStockUpdates] };
 
     case 'ADD_GATE_ENTRY': {
       const blocking = action.issues.some((i) => i.severity === 'hardFail' || i.severity === 'redFlag');
@@ -306,6 +314,11 @@ function describeAction(action: Action, prevState: State): { action: string; det
   switch (action.type) {
     case 'ADD_VENDOR_SUBMISSION':
       return { action: 'Vendor submission created', detail: `${action.payload.poNumber} · ${action.payload.vendorName}` };
+    case 'ADD_VENDOR_STOCK_UPDATE':
+      return {
+        action: 'Vendor stock update',
+        detail: `${action.payload.vendorName} · ${action.payload.material} · ${action.payload.quantity} ${action.payload.unit}`,
+      };
     case 'ADD_GATE_ENTRY':
       return {
         action: 'Gate entry created',
@@ -389,6 +402,7 @@ function loadInitial(): State {
         ...parsed,
         auth: parsed.auth ?? null,
         qcResults: parsed.qcResults ?? initialState.qcResults,
+        vendorStockUpdates: parsed.vendorStockUpdates ?? initialState.vendorStockUpdates,
         teamMembers: parsed.teamMembers ?? initialState.teamMembers,
         skuMaster: parsed.skuMaster ?? initialState.skuMaster,
         vendorMaster: parsed.vendorMaster ?? initialState.vendorMaster,

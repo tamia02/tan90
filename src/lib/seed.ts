@@ -8,6 +8,7 @@ import type {
   UnloadingRecord,
   ValidationIssue,
   VendorMasterEntry,
+  VendorStockUpdate,
   VendorSubmission,
 } from './types';
 
@@ -224,6 +225,11 @@ export const seedSkuMaster: SkuMasterEntry[] = [
   { id: 'SKU-002', sku: 'Calcium Carbonate', category: 'Chemical — Raw Material', unit: 'KG', defaultBin: 'BHW-CHEM-A2', mapped: true, createdAt: '2026-05-02 09:00:00' },
   { id: 'SKU-003', sku: 'Sodium Sulphate', category: 'Chemical — Raw Material', unit: 'KG', defaultBin: 'BHW-CHEM-A3', mapped: true, createdAt: '2026-05-02 09:00:00' },
   { id: 'SKU-004', sku: 'Barium Chloride (new)', category: 'Chemical — Trial', unit: 'KG', defaultBin: '', mapped: false, createdAt: '2026-06-20 09:00:00' },
+];
+
+export const seedVendorStockUpdates: VendorStockUpdate[] = [
+  { id: 'VSU-001', vendorName: 'Hindustan Chemical Corporation', material: 'Sodium Fluoride', quantity: 850, unit: 'KG', note: 'Ready to dispatch against next PO', updatedAt: '2026-07-02 10:15:00' },
+  { id: 'VSU-002', vendorName: 'Hindustan Chemical Corporation', material: 'Barium Chloride (new)', quantity: 200, unit: 'KG', updatedAt: '2026-06-28 16:40:00' },
 ];
 
 export const seedVendorMaster: VendorMasterEntry[] = [

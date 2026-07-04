@@ -9,6 +9,7 @@ import {
   Warehouse,
   History,
   MapPinned,
+  Boxes,
   PackageSearch,
   ShieldAlert,
   BookOpen,
@@ -52,6 +53,7 @@ const roleScreens: Record<Role, Omit<NavItem, 'role'>[]> = {
     { to: '/vendor/new', label: 'New Submission', icon: FilePlus2 },
     { to: '/vendor/submissions', label: 'My Submissions', icon: Search },
     { to: '/vendor/issues', label: 'Issues', icon: AlertTriangle },
+    { to: '/vendor/stock', label: 'Stock Update', icon: Boxes },
   ],
   storeExec: [
     { to: '/unloading', label: 'Dashboard', icon: Gauge, end: true },

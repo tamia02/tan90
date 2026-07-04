@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { AlertTriangle, FilePlus2, Gauge, Search } from 'lucide-react';
+import { AlertTriangle, Boxes, FilePlus2, Gauge, Search } from 'lucide-react';
 
 const tabs = [
   { to: '/vendor', label: 'Dashboard', icon: Gauge, end: true },
   { to: '/vendor/new', label: 'New Submission', icon: FilePlus2, end: false },
   { to: '/vendor/submissions', label: 'My Submissions', icon: Search, end: false },
   { to: '/vendor/issues', label: 'Issues', icon: AlertTriangle, end: false },
+  { to: '/vendor/stock', label: 'Stock Update', icon: Boxes, end: false },
 ];
 
 export default function VendorSubNav() {

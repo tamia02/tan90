@@ -17,6 +17,7 @@ import VendorDashboard from './pages/VendorDashboard';
 import VendorNewSubmission from './pages/VendorNewSubmission';
 import VendorSubmissions from './pages/VendorSubmissions';
 import VendorIssues from './pages/VendorIssues';
+import VendorStockUpdate from './pages/VendorStockUpdate';
 
 import StoreExecDashboard from './pages/StoreExecDashboard';
 import UnloadingDesk from './pages/UnloadingDesk';
@@ -77,6 +78,7 @@ export default function App() {
             <Route path="/vendor/new" element={guarded('vendor', <VendorNewSubmission />)} />
             <Route path="/vendor/submissions" element={guarded('vendor', <VendorSubmissions />)} />
             <Route path="/vendor/issues" element={guarded('vendor', <VendorIssues />)} />
+            <Route path="/vendor/stock" element={guarded('vendor', <VendorStockUpdate />)} />
 
             <Route path="/unloading" element={guarded('storeExec', <StoreExecDashboard />)} />
             <Route path="/unloading/desk" element={guarded('storeExec', <UnloadingDesk />)} />

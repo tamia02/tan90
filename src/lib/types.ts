@@ -63,6 +63,18 @@ export interface VendorSubmission {
   note?: string;
 }
 
+// Vendor-declared "stock I have ready to dispatch" — separate from the
+// warehouse-side ledger, which only Store Manager's GRN Check can post to.
+export interface VendorStockUpdate {
+  id: string;
+  vendorName: string;
+  material: string;
+  quantity: number;
+  unit: string;
+  note?: string;
+  updatedAt: string;
+}
+
 export interface GateEntry {
   id: string;
   gateNo: string;

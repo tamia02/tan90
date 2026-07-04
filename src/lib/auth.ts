@@ -53,7 +53,7 @@ export const roleMeta: Record<Role, RoleMeta> = {
     idPlaceholder: 'GSTIN or vendor code',
     icon: Truck,
     homePath: '/vendor',
-    demoName: 'Hindustan Chemical Corp',
+    demoName: 'Hindustan Chemical Corporation',
     demoId: 'GSTIN-HCC01',
   },
   storeExec: {
